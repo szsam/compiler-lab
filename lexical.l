@@ -1,6 +1,12 @@
 %{
 #include "syntax.tab.h"
 
+int yycolumn = 1;
+#define YY_USER_ACTION \
+	yylloc.first_line = yylloc.last_line = yylineno; \
+	yylloc.first_column = yycolumn; \
+	yylloc.last_column = yycolumn + yyleng - 1; \
+	yycolumn += yyleng;
 %}
 %option yylineno
 
@@ -14,8 +20,9 @@ FLOAT		{INT}\.{digit}+
 
 
 %%
+\n { yycolumn = 1; }
+[ \t]+ { /* no action and no return */}
 
-{ws} { /* no action and no return */}
 {INT} { printf("INT\n"); return INT; }
 {FLOAT} { printf("FLOAT\n"); return FLOAT; }
 

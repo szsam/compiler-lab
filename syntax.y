@@ -72,12 +72,12 @@ ParamDec	: Specifier VarDec
 			;
 
 /* Statements */
-CompSt	: LC DefList StmtList RC
+CompSt	: LC DefList StmtList RC { printf("CompSt -> { DefList StmtList }, line %d\n", @$.first_line); }
 		;
 StmtList: Stmt StmtList
 		| 
 		;
-Stmt	: Exp SEMI
+Stmt	: Exp SEMI { printf("stmt -> exp semi, line %d\n", @$.first_line); }
 		| CompSt
 		| RETURN Exp SEMI
 		| IF LP Exp RP Stmt %prec LOWER_THAN_ELSE
