@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "parse_tree.h"
 
 // extern FILE *yyin;
 // int yylex();
@@ -16,5 +17,9 @@ int main(int argc, char** argv)
 	}
 	yyrestart(f);
 	yyparse();
+
+	print_syntax_tree(root, 0);
+	delete_syntax_tree(root);
+
 	return 0;
 }

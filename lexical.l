@@ -1,5 +1,11 @@
 %{
+/* parse_tree.h should precede syntax.tab.h  
+ * because of our definition of macro YYSTYPE 
+ */
+#include "parse_tree.h"
 #include "syntax.tab.h"
+
+#include <stdlib.h>
 
 int yycolumn = 1;
 #define YY_USER_ACTION \
@@ -23,42 +29,64 @@ FLOAT		{INT}\.{digit}+
 \n { yycolumn = 1; }
 [ \t]+ { /* no action and no return */}
 
-{INT} { printf("INT\n"); return INT; }
-{FLOAT} { printf("FLOAT\n"); return FLOAT; }
+{INT} { 
+	yylval = create_terminal_node(eINT);
+	yylval->value.int_value = atoi(yytext);
+	return INT; 
+}
 
-struct	{ printf("STRUCT\n"); return STRUCT; }
-return	{ printf("RETURN\n"); return RETURN; }
-if		{ printf("IF	\n"); return IF;	 }
-else    { printf("ELSE	\n"); return ELSE;	 }
-while   { printf("WHILE	\n"); return WHILE;	 }
+{FLOAT} { 
+	yylval = create_terminal_node(eFLOAT);
+	yylval->value.float_value = (float)atof(yytext);
+	return FLOAT; 
+}
 
-int|float { printf("TYPE\n"); return TYPE; }
-{letter}({letter}|{digit})*	{ printf("ID\n"); return ID; }
+struct	{ yylval = create_terminal_node(eSTRUCT); return STRUCT; }
+return	{ yylval = create_terminal_node(eRETURN); return RETURN; }
+if		{ yylval = create_terminal_node(eIF);	return IF;	 }
+else    { yylval = create_terminal_node(eELSE); return ELSE;	 }
+while   { yylval = create_terminal_node(eWHILE); return WHILE;	 }
 
-; { printf("SEMI\n"); return SEMI; }
-, { printf("COMMA\n"); return COMMA; }
-= { printf("ASSIGNOP\n"); return ASSIGNOP; }
+int|float { 
+	yylval = create_terminal_node(eTYPE);
+	yylval->value.string_value = strdup(yytext);
+	return TYPE; 
+}
 
->|<|>=|<=|==|!=	{ printf("RELOP\n"); }
+{letter}({letter}|{digit})*	{ 
+	yylval = create_terminal_node(eID);
+	yylval->value.string_value = strdup(yytext);
+	return ID;
+}
 
-"+" { printf("PLUS\n"); return PLUS; }
--   { printf("MINUS\n");return MINUS; }
-"*" { printf("STAR\n"); return STAR; }
-"/" { printf("DIV\n");  return DIV; }
-&&  { printf("AND\n");  return AND; }
-"||" { printf("OR\n");   return OR; }
-"." { printf("DOT\n");  return DOT; }
-!   { printf("NOT\n");  return NOT; }
+; { yylval = create_terminal_node(eSEMI); return SEMI; }
+, { yylval = create_terminal_node(eCOMMA); return COMMA; }
+= { yylval = create_terminal_node(eASSIGNOP); return ASSIGNOP; }
 
-\( { printf("LP\n"); return LP; }
-\) { printf("RP\n"); return RP; }
-\[ { printf("LB\n"); return LB; }
-\] { printf("RB\n"); return RB; }
-\{ { printf("LC\n"); return LC; }
-\} { printf("RC\n"); return RC; }
+>|<|>=|<=|==|!=	{ 
+	yylval = create_terminal_node(eRELOP);
+	yylval->value.string_value = strdup(yytext);
+	return RELOP;	
+}
+
+"+" { yylval = create_terminal_node(ePLUS); return PLUS; }
+-   { yylval = create_terminal_node(eMINUS);return MINUS; }
+"*" { yylval = create_terminal_node(eSTAR); return STAR; }
+"/" { yylval = create_terminal_node(eDIV);  return DIV; }
+&&  { yylval = create_terminal_node(eAND);  return AND; }
+"||" { yylval = create_terminal_node(eOR);  return OR; }
+"." { yylval = create_terminal_node(eDOT);  return DOT; }
+!   { yylval = create_terminal_node(eNOT);  return NOT; }
+
+\( { yylval = create_terminal_node(eLP); return LP; }
+\) { yylval = create_terminal_node(eRP); return RP; }
+\[ { yylval = create_terminal_node(eLB); return LB; }
+\] { yylval = create_terminal_node(eRB); return RB; }
+\{ { yylval = create_terminal_node(eLC); return LC; }
+\} { yylval = create_terminal_node(eRC); return RC; }
 
 . {
-	printf("Error type A at Line %d: Mysterious characters \'%s\'\n",
+	fprintf(stderr, "Error type A at Line %d: Mysterious characters \'%s\'\n",
 	yylineno, yytext);
 }
 
