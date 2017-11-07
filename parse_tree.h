@@ -1,3 +1,4 @@
+#pragma once
 
 typedef enum GrammarSymbol {
 	eFIRST_TERMINAL,
@@ -26,6 +27,7 @@ struct syntax_node {
 		float float_value;
 		char *string_value;
 	}value;
+	int loc;	// line number 
 	struct syntax_node *prev, *next, *child;
 };
 

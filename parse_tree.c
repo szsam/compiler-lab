@@ -1,9 +1,11 @@
 #include "parse_tree.h"
+
 #include <stdarg.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 
+extern int yylineno;	// defined in lex.yy.c
 
 /* be careful of the order here */
 const char *syntax_node_name_table[] = {
@@ -26,15 +28,39 @@ const char *get_syntax_node_name(GrammarSymbol node_type) {
     return syntax_node_name_table[node_type];
 }
 
+int is_nonterminal(GrammarSymbol s) {
+	return s >= eFIRST_NONTERMINAL && s <= eLAST_NONTERMINAL;
+}
+
 void print_syntax_node(struct syntax_node * node) {
     GrammarSymbol node_type = node->node_type;
     printf("%s", get_syntax_node_name(node_type));
-    if(node_type == eID || node_type == eTYPE)
+	if (is_nonterminal(node_type)) {
+		// print line number
+		printf(" (%d)", node->loc);
+	}
+    else if(node_type == eID || node_type == eTYPE)
         printf(": %s", node->value.string_value);
     else if(node_type == eINT)
         printf(": %d", node->value.int_value);
     else if(node_type == eFLOAT)
         printf(": %f", node->value.float_value);
+    printf("\n");
+}
+
+void print_syntax_tree(struct syntax_node *root, int indent_level) {
+    /* we do not print invalid node and empty production rule node */
+    if(!root || (is_nonterminal(root->node_type) && root->child == NULL))
+        return;
+    /* each indentation level requires 2 spaces */
+    for(int i = 0; i < indent_level; i++)
+        printf("  ");
+    print_syntax_node(root);
+    struct syntax_node *p = root->child;
+    while(p) {
+        print_syntax_tree(p, indent_level + 1);
+        p = p->next;
+    }
 }
 
 void delete_syntax_node(struct syntax_node * node) {
@@ -45,33 +71,13 @@ void delete_syntax_node(struct syntax_node * node) {
     free(node);
 }
 
-int is_nonterminal(GrammarSymbol s) {
-	return s >= eFIRST_NONTERMINAL && s <= eLAST_NONTERMINAL;
-}
-
-void print_syntax_tree(struct syntax_node *root, int indent_level) {
-    /* we do not print invalid node and empty production rule node */
-    if(!root || (is_nonterminal(root->node_type) && root->child == NULL))
-        return;
-    /* each indentation level == 2 space */
-    for(int i = 0; i < indent_level; i++)
-        printf("  ");
-    print_syntax_node(root);
-    printf("\n");
-    struct syntax_node *p = root->child;
-    while(p) {
-        print_syntax_tree(p, indent_level + 1);
-        p = p->next;
-    }
-}
-
 void delete_syntax_tree(struct syntax_node *root) {
     struct syntax_node *p = root->child;
-    delete_syntax_node(root);
     while(p) {
         delete_syntax_node(p);
         p = p->next;
     }
+    delete_syntax_node(root);
 }
 
 struct syntax_node *create_terminal_node(GrammarSymbol node_type) {
@@ -79,6 +85,7 @@ struct syntax_node *create_terminal_node(GrammarSymbol node_type) {
 	ret->node_type = node_type;
 	// ret->is_empty = 0;
 	ret->prev = ret->next = ret->child = NULL;
+	ret->loc = yylineno;
 	return ret;
 }
 
@@ -108,9 +115,12 @@ struct syntax_node *create_nonterminal_node(GrammarSymbol node_type, int argc, .
     ret->prev = ret->next = NULL;
     ret->child = head;
     // ret->is_empty = 1;
-    if(argc > 0) {
-        // ret->is_empty = 0;
-        // ret->line_no = head->line_no;
-    }
+//    if(argc > 0) {
+//        // ret->is_empty = 0;
+//        // ret->line_no = head->line_no;
+//    }
+	if (ret->child) {
+		ret->loc = head->loc;
+	}
     return ret;
 }

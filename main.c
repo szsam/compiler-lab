@@ -16,7 +16,8 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	yyrestart(f);
-	yyparse();
+	int ret = yyparse();
+	// printf("yyparse() returns %d", ret);
 
 	print_syntax_tree(root, 0);
 	delete_syntax_tree(root);

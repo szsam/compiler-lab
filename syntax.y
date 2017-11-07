@@ -3,14 +3,16 @@
 #include "parse_tree.h"
 
 
+/* defined in lex.yy.c */
 int yylex();
-void yyerror();
 extern int yylineno;
 
-
+/* defined later in this file */
+void yyerror();
 %}
+
 /* let Bison define yylloc */
-%locations
+// %locations
 
 /* declared types */
 //%union {
