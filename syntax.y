@@ -9,6 +9,10 @@ extern int yylineno;
 
 /* defined later in this file */
 void yyerror();
+
+/* set if an error (including lexical err and syntax err) has occured during parse */
+int error_occurred = 0;
+
 %}
 
 /* let Bison define yylloc */
@@ -153,6 +157,7 @@ Args: Exp COMMA Args { $$ = create_nonterminal_node(eArgs, 3, $1, $2, $3); }
 %%
 void yyerror(char *msg)
 {
+	error_occurred = 1;
 	fprintf(stderr, "Error type B at Line %d: %s\n", yylineno, msg);
 }
 

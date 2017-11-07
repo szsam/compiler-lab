@@ -6,6 +6,8 @@
 void yyrestart (FILE *input_file  );
 #include "syntax.tab.h"
 
+extern int error_occurred;
+
 int main(int argc, char** argv)
 {
 	if (argc <= 1) return 1;
@@ -16,10 +18,10 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	yyrestart(f);
-	int ret = yyparse();
-	// printf("yyparse() returns %d", ret);
+	yyparse();
 
-	print_syntax_tree(root, 0);
+	if (!error_occurred)
+		print_syntax_tree(root, 0);
 	delete_syntax_tree(root);
 
 	return 0;

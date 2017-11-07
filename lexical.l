@@ -7,6 +7,8 @@
 
 #include <stdlib.h>
 
+extern int error_occurred;
+
 // int yycolumn = 1;
 // #define YY_USER_ACTION \
 // 	yylloc.first_line = yylloc.last_line = yylineno; \
@@ -86,6 +88,7 @@ int|float {
 \} { yylval = create_terminal_node(eRC); return RC; }
 
 . {
+	error_occurred = 1;
 	fprintf(stderr, "Error type A at Line %d: Mysterious characters \'%s\'\n",
 	yylineno, yytext);
 }
