@@ -114,7 +114,7 @@ Stmt	: Exp SEMI { $$ = create_nonterminal_node(eStmt, 2, $1, $2); }
 													5, $1, $2, $3, $4, $5); }
 		| IF LP Exp RP Stmt ELSE Stmt { $$ = create_nonterminal_node(eStmt, 7, $1, $2, $3, $4, $5, $6, $7); }
 		| WHILE LP Exp RP Stmt { $$ = create_nonterminal_node(eStmt, 5, $1, $2, $3, $4, $5); }
-		| error SEMI { }
+		| error SEMI { $$ = create_nonterminal_node(eStmt, 0); }
 		;
 		
 /* Local Definitions */
@@ -122,6 +122,7 @@ DefList	: Def DefList { $$ = create_nonterminal_node(eDefList, 2, $1, $2); }
 		| { $$ = create_nonterminal_node(eDefList, 0); }
 		;
 Def		: Specifier DecList SEMI { $$ = create_nonterminal_node(eDef, 3, $1, $2, $3); }
+		| error SEMI { $$ = create_nonterminal_node(eDef, 0); }
 		;
 DecList	: Dec { $$ = create_nonterminal_node(eDecList, 1, $1); }
 		| Dec COMMA DecList { $$ = create_nonterminal_node(eDecList, 3, $1, $2, $3); }

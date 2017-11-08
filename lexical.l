@@ -19,27 +19,53 @@ extern int error_occurred;
 %option yylineno
 
 digit [0-9]
+digits [0-9]+
 letter [_a-zA-Z]
 delim [ \n\t]
 ws {delim}+
 
-INT			0|[1-9][0-9]*
-FLOAT		{INT}\.{digit}+
+decimal 0|[1-9][0-9]*
+oct 0[0-7]+
+hex 0[xX][0-9a-fA-F]+
 
+decimal_float {digits}\.{digits}
+
+significand [0-9]*\.?[0-9]+|[0-9]+\.
+exponential_sym [eE]
+optional_sign [+-]?
+scientific_notation {significand}{exponential_sym}{optional_sign}{digits}
 
 %%
 \n { /* yycolumn = 1; */ }
 [ \t]+ { /* no action and no return */}
 
-{INT} { 
+{decimal} { 
 	yylval = create_terminal_node(eINT);
 	yylval->value.int_value = atoi(yytext);
 	return INT; 
 }
 
-{FLOAT} { 
+{oct} { 
+	yylval = create_terminal_node(eINT);
+	yylval->value.int_value = strtol(yytext, NULL, 8);
+	return INT; 
+}
+
+{hex} { 
+	yylval = create_terminal_node(eINT);
+	yylval->value.int_value = strtol(yytext, NULL, 16);
+	return INT; 
+}
+
+{decimal_float} { 
 	yylval = create_terminal_node(eFLOAT);
-	yylval->value.float_value = (float)atof(yytext);
+	yylval->value.float_value = strtof(yytext, NULL);
+	return FLOAT; 
+}
+
+{scientific_notation} { 
+	yylval = create_terminal_node(eFLOAT);
+	yylval->value.float_value = strtof(yytext, NULL);
 	return FLOAT; 
 }
 
