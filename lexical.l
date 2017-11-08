@@ -35,9 +35,15 @@ exponential_sym [eE]
 optional_sign [+-]?
 scientific_notation {significand}{exponential_sym}{optional_sign}{digits}
 
+one_line_comment "//".*
+multi_line_comment "/*"([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*+\/
+
 %%
 \n { /* yycolumn = 1; */ }
 [ \t]+ { /* no action and no return */}
+
+{one_line_comment} {}
+{multi_line_comment} {}
 
 {decimal} { 
 	yylval = create_terminal_node(eINT);
