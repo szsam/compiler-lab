@@ -6,4 +6,4 @@ lex.yy.c : lexical.l syntax.tab
 syntax.tab : syntax.y
 	bison -d -v -t syntax.y
 clean:
-	rm -rf parser lex.yy.c syntax.tab*
+	rm -rf parser lex.yy.c syntax.tab* syntax.output
