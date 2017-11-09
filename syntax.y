@@ -63,6 +63,18 @@ int error_occurred = 0;
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
 
+/* free discarded symbols during error recovery */
+%destructor { 
+	/* Bison will discard the start symbol when the parser succeeds,
+     * but of course we don't want to call delete_syntax_tree() on it.
+	 */
+	if ($$->node_type != eProgram)
+	{
+		// printf("destructor: %s %d\n", get_syntax_node_name($$->node_type), $$->loc); 
+		delete_syntax_tree($$); 
+	}
+} <>
+
 %%
 /* productions */
 /* High-level Definitions */
@@ -108,7 +120,7 @@ ParamDec	: Specifier VarDec { $$ = create_nonterminal_node(eParamDec, 2, $1, $2)
 
 /* Statements */
 CompSt	: LC DefList StmtList RC { $$ = create_nonterminal_node(eCompSt, 4, $1, $2, $3, $4); }
-	    | error RC { $$ = create_nonterminal_node(eCompSt, 0); }
+	    | error RC { $$ = create_nonterminal_node(eCompSt, 1, $2); }
 		;
 StmtList: Stmt StmtList { $$ = create_nonterminal_node(eStmtList, 2, $1, $2); }
 		| { $$ = create_nonterminal_node(eStmtList, 0); }
@@ -120,7 +132,7 @@ Stmt	: Exp SEMI { $$ = create_nonterminal_node(eStmt, 2, $1, $2); }
 													5, $1, $2, $3, $4, $5); }
 		| IF LP Exp RP Stmt ELSE Stmt { $$ = create_nonterminal_node(eStmt, 7, $1, $2, $3, $4, $5, $6, $7); }
 		| WHILE LP Exp RP Stmt { $$ = create_nonterminal_node(eStmt, 5, $1, $2, $3, $4, $5); }
-		| error SEMI { $$ = create_nonterminal_node(eStmt, 0); }
+		| error SEMI { $$ = create_nonterminal_node(eStmt, 1, $2); }
 		;
 		
 /* Local Definitions */
@@ -128,7 +140,7 @@ DefList	: Def DefList { $$ = create_nonterminal_node(eDefList, 2, $1, $2); }
 		| { $$ = create_nonterminal_node(eDefList, 0); }
 		;
 Def		: Specifier DecList SEMI { $$ = create_nonterminal_node(eDef, 3, $1, $2, $3); }
-		| error SEMI { $$ = create_nonterminal_node(eDef, 0); }
+		| error SEMI { $$ = create_nonterminal_node(eDef, 1, $2); }
 		;
 DecList	: Dec { $$ = create_nonterminal_node(eDecList, 1, $1); }
 		| Dec COMMA DecList { $$ = create_nonterminal_node(eDecList, 3, $1, $2, $3); }
