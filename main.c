@@ -18,11 +18,12 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	yyrestart(f);
+	// yydebug = 1;
 	yyparse();
 
 	if (!error_occurred)
-		print_syntax_tree(root, 0);
-	delete_syntax_tree(root);
+		print_parse_tree(root, 0);
+	delete_parse_tree(root);
 
 	return 0;
 }

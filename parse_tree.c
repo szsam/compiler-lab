@@ -7,8 +7,10 @@
 
 extern int yylineno;	// defined in lex.yy.c
 
+ParseTreeNode *root;
+
 /* be careful of the order here */
-const char *syntax_node_name_table[] = {
+const char *parse_tree_node_name_table[] = {
 	"INT", "FLOAT", "ID", "TYPE", "RELOP",
 	"SEMI", "COMMA", "ASSIGNOP",
 	"PLUS", "MINUS", "STAR", "DIV",
@@ -23,18 +25,18 @@ const char *syntax_node_name_table[] = {
 	"Exp", "Args"
 };
 
-const char *get_syntax_node_name(GrammarSymbol node_type) {
+const char *get_parse_tree_node_name(GrammarSymbol node_type) {
     assert(node_type >= eFIRST_TERMINAL && node_type <= eLAST_NONTERMINAL);
-    return syntax_node_name_table[node_type];
+    return parse_tree_node_name_table[node_type];
 }
 
 int is_nonterminal(GrammarSymbol s) {
 	return s >= eFIRST_NONTERMINAL && s <= eLAST_NONTERMINAL;
 }
 
-void print_syntax_node(struct syntax_node * node) {
+void print_parse_tree_node(ParseTreeNode * node) {
     GrammarSymbol node_type = node->node_type;
-    printf("%s", get_syntax_node_name(node_type));
+    printf("%s", get_parse_tree_node_name(node_type));
 	if (is_nonterminal(node_type)) {
 		// print line number
 		printf(" (%d)", node->loc);
@@ -48,22 +50,25 @@ void print_syntax_node(struct syntax_node * node) {
     printf("\n");
 }
 
-void print_syntax_tree(struct syntax_node *root, int indent_level) {
+void print_parse_tree(ParseTreeNode *root, int indent_level) {
     /* we do not print invalid node and empty production rule node */
     if(!root || (is_nonterminal(root->node_type) && root->child == NULL))
         return;
     /* each indentation level requires 2 spaces */
     for(int i = 0; i < indent_level; i++)
         printf("  ");
-    print_syntax_node(root);
-    struct syntax_node *p = root->child;
-    while(p) {
-        print_syntax_tree(p, indent_level + 1);
-        p = p->next;
-    }
+    print_parse_tree_node(root);
+	print_parse_tree(root->child, indent_level + 1);
+	print_parse_tree(root->next, indent_level);
+
+   //  ParseTreeNode *p = root->child;
+   //  while(p) {
+   //      print_parse_tree(p, indent_level + 1);
+   //      p = p->next;
+   //  }
 }
 
-void delete_syntax_node(struct syntax_node * node) {
+void delete_parse_tree_node(ParseTreeNode * node) {
     int node_type = node->node_type;
     if(node_type == eID || node_type == eTYPE 
         || node_type == eRELOP)
@@ -71,31 +76,33 @@ void delete_syntax_node(struct syntax_node * node) {
     free(node);
 }
 
-void delete_syntax_tree(struct syntax_node *root) {
-    struct syntax_node *p = root->child;
-    while(p) {
-        delete_syntax_node(p);
-        p = p->next;
-    }
-    delete_syntax_node(root);
+void delete_parse_tree(ParseTreeNode *root) {
+	if (!root) return;
+//    ParseTreeNode *p = root->child;
+//    while(p) {
+//        delete_parse_tree_node(p);
+//        p = p->next;
+//    }
+	delete_parse_tree(root->child);
+	delete_parse_tree(root->next);
+    delete_parse_tree_node(root);
 }
 
-struct syntax_node *create_terminal_node(GrammarSymbol node_type) {
-	struct syntax_node *ret = (struct syntax_node *)malloc(sizeof(struct syntax_node));
+ParseTreeNode *create_terminal_node(GrammarSymbol node_type) {
+	ParseTreeNode *ret = (ParseTreeNode *)malloc(sizeof(ParseTreeNode));
 	ret->node_type = node_type;
-	// ret->is_empty = 0;
 	ret->prev = ret->next = ret->child = NULL;
 	ret->loc = yylineno;
 	return ret;
 }
 
-struct syntax_node *create_nonterminal_node(GrammarSymbol node_type, int argc, ...) {
-    struct syntax_node *head = NULL, *curr = NULL, *next = NULL;
+ParseTreeNode *create_nonterminal_node(GrammarSymbol node_type, int argc, ...) {
+    ParseTreeNode *head = NULL, *curr = NULL, *next = NULL;
     va_list args;
 
     va_start(args, argc);          
     for(int i = 0; i < argc; i++ ) {
-        next = va_arg(args, struct syntax_node *); 
+        next = va_arg(args, ParseTreeNode *); 
         /* first one */
         if(!head) {
             head = curr = next;
@@ -110,17 +117,16 @@ struct syntax_node *create_nonterminal_node(GrammarSymbol node_type, int argc, .
     }
     va_end(args);
 
-    struct syntax_node *ret = (struct syntax_node *)malloc(sizeof(struct syntax_node));
+    ParseTreeNode *ret = (ParseTreeNode *)malloc(sizeof(ParseTreeNode));
     ret->node_type = node_type;
     ret->prev = ret->next = NULL;
     ret->child = head;
-    // ret->is_empty = 1;
-//    if(argc > 0) {
-//        // ret->is_empty = 0;
-//        // ret->line_no = head->line_no;
-//    }
+
 	if (ret->child) {
 		ret->loc = head->loc;
+	}
+	else {
+		ret->loc = -1;
 	}
     return ret;
 }

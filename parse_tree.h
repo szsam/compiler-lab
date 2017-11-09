@@ -19,30 +19,29 @@ typedef enum GrammarSymbol {
 	eLAST_NONTERMINAL = eArgs
 }GrammarSymbol;
 
-struct syntax_node {
+typedef struct ParseTreeNode {
 	enum GrammarSymbol node_type;
-	// int is_empty;
 	union {
 		int int_value;
 		float float_value;
 		char *string_value;
 	}value;
 	int loc;	// line number 
-	struct syntax_node *prev, *next, *child;
-};
+	struct ParseTreeNode *prev, *next, *child;
+}ParseTreeNode;
 
-#define YYSTYPE struct syntax_node *
+#define YYSTYPE ParseTreeNode *
 
-// const struct syntax_node EPSILON;
 
-const char *get_syntax_node_name(GrammarSymbol node_type);
-void print_syntax_node(struct syntax_node * node);
-void delete_syntax_tree(struct syntax_node *root);
-void print_syntax_tree(struct syntax_node *root, int indent_level);
+const char *get_parse_tree_node_name(GrammarSymbol node_type);
+void print_parse_tree_node(ParseTreeNode *);
+void delete_parse_tree(ParseTreeNode *);
+void delete_parse_tree_node(ParseTreeNode *);
+void print_parse_tree(ParseTreeNode *root, int indent_level);
 
-struct syntax_node *root;
+extern ParseTreeNode *root;
 
-struct syntax_node *create_terminal_node(GrammarSymbol node_type);
-struct syntax_node *create_nonterminal_node(GrammarSymbol node_type, int argc, ...);
+ParseTreeNode *create_terminal_node(GrammarSymbol node_type);
+ParseTreeNode *create_nonterminal_node(GrammarSymbol node_type, int argc, ...);
 
 

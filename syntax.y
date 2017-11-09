@@ -66,12 +66,12 @@ int error_occurred = 0;
 /* free discarded symbols during error recovery */
 %destructor { 
 	/* Bison will discard the start symbol when the parser succeeds,
-     * but of course we don't want to call delete_syntax_tree() on it.
+     * but of course we don't want to call delete_parse_tree() on it.
 	 */
 	if ($$->node_type != eProgram)
 	{
 		// printf("destructor: %s %d\n", get_syntax_node_name($$->node_type), $$->loc); 
-		delete_syntax_tree($$); 
+		delete_parse_tree($$); 
 	}
 } <>
 
