@@ -18,6 +18,11 @@ int error_occurred = 0;
 /* let Bison define yylloc */
 // %locations
 
+/* Error messages report the unexpected token, and possibly the expected ones */
+%define parse.error verbose
+/* Enable LAC (lookahead correction) to improve syntax error handling */
+%define parse.lac full
+
 /* declared types */
 //%union {
 ///    int int_value;
@@ -103,6 +108,7 @@ ParamDec	: Specifier VarDec { $$ = create_nonterminal_node(eParamDec, 2, $1, $2)
 
 /* Statements */
 CompSt	: LC DefList StmtList RC { $$ = create_nonterminal_node(eCompSt, 4, $1, $2, $3, $4); }
+	    | error RC { $$ = create_nonterminal_node(eCompSt, 0); }
 		;
 StmtList: Stmt StmtList { $$ = create_nonterminal_node(eStmtList, 2, $1, $2); }
 		| { $$ = create_nonterminal_node(eStmtList, 0); }
