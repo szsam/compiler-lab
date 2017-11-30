@@ -1,6 +1,12 @@
 %{
 #include <stdio.h>
+#include <memory>
+#include <string.h>
+#include <iostream>
+
 #include "parse_tree.h"
+#include "Type.h"
+#include "Env.h"
 
 
 /* defined in lex.yy.c */
@@ -8,10 +14,13 @@ int yylex();
 extern int yylineno;
 
 /* defined later in this file */
-void yyerror();
+void yyerror(const char *);
 
 /* set if an error (including lexical err and syntax err) has occured during parse */
 int error_occurred = 0;
+
+std::shared_ptr<Type> saved_specifier;
+std::shared_ptr<Env> cur_env;
 
 %}
 
@@ -78,7 +87,8 @@ int error_occurred = 0;
 %%
 /* productions */
 /* High-level Definitions */
-Program 	: ExtDefList { $$ = create_nonterminal_node(eProgram, 1, $1); root = $$; }
+Program 	: { cur_env = std::make_shared<Env>(cur_env); }
+		      ExtDefList { $$ = create_nonterminal_node(eProgram, 1, $2); root = $$; }
 			;
 ExtDefList	: ExtDef ExtDefList { $$ = create_nonterminal_node(eExtDefList, 2, $1, $2); }
 			| { $$ = create_nonterminal_node(eExtDefList, 0); }
@@ -87,12 +97,17 @@ ExtDef		: Specifier ExtDecList SEMI { $$ = create_nonterminal_node(eExtDef, 3, $
 			| Specifier SEMI { $$ = create_nonterminal_node(eExtDef, 2, $1, $2); }
 			| Specifier FunDec CompSt { $$ = create_nonterminal_node(eExtDef, 3, $1, $2, $3); }
 			;
-ExtDecList	: VarDec { $$ = create_nonterminal_node(eExtDefList, 1, $1); }
+ExtDecList	: VarDec { $$ = create_nonterminal_node(eExtDefList, 1, $1);
+		               cur_env->put($1->id, $1->type);
+					 }
 			| VarDec COMMA ExtDecList { $$ = create_nonterminal_node(eExtDefList, 3, $1, $2, $3); }
 			;
 			
 /* Specifiers */
-Specifier	: TYPE { $$ = create_nonterminal_node(eSpecifier, 1, $1); }
+Specifier	: TYPE { $$ = create_nonterminal_node(eSpecifier, 1, $1); 
+				     Basic::BasicType t = !strcmp($1->value.string_value, "int") ? Basic::tINT : Basic::tFLOAT;
+				     saved_specifier = std::make_shared<Basic>(t);
+				   }
 			| StructSpecifier { $$ = create_nonterminal_node(eSpecifier, 1, $1); }
 			;
 StructSpecifier : STRUCT OptTag LC DefList RC { $$ = create_nonterminal_node(eStructSpecifier, 
@@ -106,7 +121,10 @@ Tag	: ID { $$ = create_nonterminal_node(eTag, 1, $1); }
 	;
 	
 /* Declarators */
-VarDec	: ID { $$ = create_nonterminal_node(eVarDec, 1, $1); }
+VarDec	: ID { $$ = create_nonterminal_node(eVarDec, 1, $1);
+		       $$->id = $1->value.string_value;
+			   $$->type = saved_specifier;
+			 }
 		| VarDec LB INT RB { $$ = create_nonterminal_node(eVarDec, 4, $1, $2, $3, $4); }
 		;
 FunDec	: ID LP VarList RP { $$ = create_nonterminal_node(eFunDec, 4, $1, $2, $3, $4); }
@@ -145,8 +163,20 @@ Def		: Specifier DecList SEMI { $$ = create_nonterminal_node(eDef, 3, $1, $2, $3
 DecList	: Dec { $$ = create_nonterminal_node(eDecList, 1, $1); }
 		| Dec COMMA DecList { $$ = create_nonterminal_node(eDecList, 3, $1, $2, $3); }
 		;
-Dec		: VarDec { $$ = create_nonterminal_node(eDec, 1, $1); }
-		| VarDec ASSIGNOP Exp { $$ = create_nonterminal_node(eDec, 3, $1, $2, $3); }
+Dec		: VarDec { $$ = create_nonterminal_node(eDec, 1, $1); 
+				   if(!cur_env->put($1->id, $1->type))
+				   {
+				       std::cerr << "Error type 3 at Line " << yylineno 
+						<< ": Redefined variable '" << $1->id << "'.\n";
+				   }
+				 }
+		| VarDec ASSIGNOP Exp { $$ = create_nonterminal_node(eDec, 3, $1, $2, $3); 
+							    if(!cur_env->put($1->id, $1->type))
+							    {
+								   std::cerr << "Error type 3 at Line " << yylineno 
+									<< ": Redefined variable '" << $1->id << "'.\n";
+							    }
+							  }
 		;
 		
 /* Expressions */
@@ -165,7 +195,13 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| ID LP RP		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| Exp LB Exp RB { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); }
 	| Exp DOT ID	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
-	| ID			{ $$ = create_nonterminal_node(eExp, 1, $1); }
+	| ID			{ $$ = create_nonterminal_node(eExp, 1, $1); 
+					  const char *id = $1->value.string_value;
+					  if (cur_env->table.find(id) == cur_env->table.end())
+					  {
+						fprintf(stderr, "Error type 1 at Line %d: Undefined variable '%s'.\n", yylineno, id);
+					  }
+					}
 	| INT			{ $$ = create_nonterminal_node(eExp, 1, $1); }
 	| FLOAT			{ $$ = create_nonterminal_node(eExp, 1, $1); }
 	;
@@ -174,7 +210,7 @@ Args: Exp COMMA Args { $$ = create_nonterminal_node(eArgs, 3, $1, $2, $3); }
 	;
 
 %%
-void yyerror(char *msg)
+void yyerror(const char *msg)
 {
 	error_occurred = 1;
 	fprintf(stderr, "Error type B at Line %d: %s\n", yylineno, msg);

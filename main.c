@@ -8,6 +8,8 @@ void yyrestart (FILE *input_file  );
 
 extern int error_occurred;
 
+#include <iostream>
+
 int main(int argc, char** argv)
 {
 	if (argc <= 1) return 1;
@@ -22,7 +24,7 @@ int main(int argc, char** argv)
 	yyparse();
 
 	if (!error_occurred)
-		print_parse_tree(root, 0);
+		// print_parse_tree(root, 0);
 	delete_parse_tree(root);
 
 	return 0;

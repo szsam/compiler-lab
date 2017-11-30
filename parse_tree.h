@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Type.h"
+
 typedef enum GrammarSymbol {
 	eFIRST_TERMINAL,
 	eINT = eFIRST_TERMINAL, eFLOAT, eID, eTYPE, eRELOP,
@@ -27,6 +29,11 @@ typedef struct ParseTreeNode {
 		char *string_value;
 	}value;
 	int loc;	// line number 
+
+	// used in semantic analysis
+	std::string id;
+	std::shared_ptr<Type> type;
+
 	struct ParseTreeNode *prev, *next, *child;
 }ParseTreeNode;
 
