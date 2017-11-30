@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 struct Type
 {
@@ -16,4 +17,12 @@ struct Basic : public Type
 	BasicType basic_type;
 
 	Basic(BasicType t) : Type(BASIC), basic_type(t) {}
+};
+
+struct Function : public Type
+{
+	std::shared_ptr<Type> ret_type;
+	std::vector<std::shared_ptr<Type> > params;
+
+	Function(std::shared_ptr<Type> t) : Type(FUNCTION), ret_type(t) {}
 };

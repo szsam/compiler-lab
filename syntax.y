@@ -21,6 +21,7 @@ int error_occurred = 0;
 
 std::shared_ptr<Type> saved_specifier;
 std::shared_ptr<Env> cur_env;
+std::shared_ptr<Function> cur_func;
 
 %}
 
@@ -127,13 +128,33 @@ VarDec	: ID { $$ = create_nonterminal_node(eVarDec, 1, $1);
 			 }
 		| VarDec LB INT RB { $$ = create_nonterminal_node(eVarDec, 4, $1, $2, $3, $4); }
 		;
-FunDec	: ID LP VarList RP { $$ = create_nonterminal_node(eFunDec, 4, $1, $2, $3, $4); }
-		| ID LP RP { $$ = create_nonterminal_node(eFunDec, 3, $1, $2, $3); }
+FunDec	: ID LP VarList RP { $$ = create_nonterminal_node(eFunDec, 4, $1, $2, $3, $4); 
+							 const char *id = $1->value.string_value;
+							 if(!cur_env->put(id, std::make_shared<Function>(saved_specifier)))
+							 {
+						 	    std::cerr << "Error type 4 at Line " << yylineno 
+						 	    	<< ": Redefined function '" << id << "'.\n";
+						 	 }
+						   }
+		| ID LP RP { $$ = create_nonterminal_node(eFunDec, 3, $1, $2, $3); 
+					 const char *id = $1->value.string_value;
+					 if(!cur_env->put(id, std::make_shared<Function>(saved_specifier)))
+					 {
+						std::cerr << "Error type 4 at Line " << yylineno 
+							<< ": Redefined function '" << id << "'.\n";
+					 }
+				   }
 		;
 VarList	: ParamDec COMMA VarList { $$ = create_nonterminal_node(eVarList, 3, $1, $2, $3); }
 		| ParamDec { $$ = create_nonterminal_node(eVarList, 1, $1); }
 		;
-ParamDec	: Specifier VarDec { $$ = create_nonterminal_node(eParamDec, 2, $1, $2); }
+ParamDec	: Specifier VarDec { $$ = create_nonterminal_node(eParamDec, 2, $1, $2); 
+								 if(!cur_env->put($2->id, $2->type))
+				  				 {
+				  				     std::cerr << "Error type 3 at Line " << yylineno 
+				  				  	<< ": Redefined parameter '" << $2->id << "'.\n";
+				  				 }
+							   }
 			;
 
 /* Statements */
@@ -191,13 +212,27 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| LP Exp RP			{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| MINUS Exp %prec NEG { $$ = create_nonterminal_node(eExp, 2, $1, $2); }
 	| NOT Exp		{ $$ = create_nonterminal_node(eExp, 2, $1, $2); }
-	| ID LP Args RP { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); }
-	| ID LP RP		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
+	| ID LP Args RP { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
+					  const char *id = $1->value.string_value;
+					  if (!cur_env->get(id))
+					  {
+						std::cerr << "Error type 2 at Line " << yylineno
+							<< ": Undefined function '" << id << "'.\n";
+					  }
+				    }
+	| ID LP RP		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
+					  const char *id = $1->value.string_value;
+					  if (!cur_env->get(id))
+					  {
+						std::cerr << "Error type 2 at Line " << yylineno
+							<< ": Undefined function '" << id << "'.\n";
+					  }
+				    }
 	| Exp LB Exp RB { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); }
 	| Exp DOT ID	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| ID			{ $$ = create_nonterminal_node(eExp, 1, $1); 
 					  const char *id = $1->value.string_value;
-					  if (cur_env->table.find(id) == cur_env->table.end())
+					  if (cur_env->get(id) == nullptr)
 					  {
 						fprintf(stderr, "Error type 1 at Line %d: Undefined variable '%s'.\n", yylineno, id);
 					  }
