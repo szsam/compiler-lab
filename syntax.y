@@ -23,6 +23,10 @@ std::shared_ptr<Type> saved_specifier;
 std::shared_ptr<Env> cur_env;
 std::shared_ptr<Function> cur_func;
 
+std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs);
+
+void semantic_error(int type, int lineno, const char *msg);
+
 %}
 
 /* let Bison define yylloc */
@@ -202,7 +206,7 @@ Dec		: VarDec { $$ = create_nonterminal_node(eDec, 1, $1);
 		
 /* Expressions */
 Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
-						  if (*$1->type != *$3->type)
+						  if ($1->type && $3->type && *$1->type != *$3->type)
 						  {
 							std::cerr << "Error type 5 at Line " << yylineno 
 								<< ": Type mismatched for assignment.\n";
@@ -216,7 +220,13 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 	| Exp AND Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| Exp OR Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| Exp RELOP Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
-	| Exp PLUS Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
+	| Exp PLUS Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
+						  $$->type = check_arith_op($1->type, $3->type);
+						  if (!$$->type)
+						  {
+							semantic_error(7, yylineno, "Type mismatched for operands");
+						  }
+						}
 	| Exp MINUS Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| Exp STAR Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| Exp DIV Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
@@ -275,4 +285,19 @@ void yyerror(const char *msg)
 	fprintf(stderr, "Error type B at Line %d: %s\n", yylineno, msg);
 }
 
+/* Types of operands of arithmetic operator should be identical and int/float */
+std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs)
+{
+	if (lhs && rhs && (typeid(*lhs) == typeid(*rhs)) && (typeid(*lhs) == typeid(Basic)))
+	{
+		auto l = dynamic_cast<Basic &>(*lhs);
+		auto r = dynamic_cast<Basic &>(*rhs);
+		return (l.basic_type == r.basic_type) ? lhs : nullptr;
+	}
+	else return nullptr;	
+}
 
+void semantic_error(int type, int lineno, const char *msg)
+{
+	std::cerr << "Error type " << type << " at Line " << lineno << ": " << msg << ".\n";
+}
