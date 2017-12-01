@@ -132,17 +132,21 @@ VarDec	: ID { $$ = create_nonterminal_node(eVarDec, 1, $1);
 			 }
 		| VarDec LB INT RB { $$ = create_nonterminal_node(eVarDec, 4, $1, $2, $3, $4); }
 		;
-FunDec	: ID LP VarList RP { $$ = create_nonterminal_node(eFunDec, 4, $1, $2, $3, $4); 
-							 const char *id = $1->value.string_value;
-							 if(!cur_env->put(id, std::make_shared<Function>(saved_specifier)))
-							 {
-						 	    std::cerr << "Error type 4 at Line " << yylineno 
-						 	    	<< ": Redefined function '" << id << "'.\n";
-						 	 }
-						   }
+FunDec	: ID LP { const char *id = $1->value.string_value;
+				  cur_func = std::make_shared<Function>(saved_specifier);
+
+		  		  if(!cur_env->put(id, cur_func))
+				  {
+				     std::cerr << "Error type 4 at Line " << yylineno 
+						<< ": Redefined function '" << id << "'.\n";
+				  }
+				}
+		  VarList RP { $$ = create_nonterminal_node(eFunDec, 4, $1, $2, $4, $5); 
+					 }
 		| ID LP RP { $$ = create_nonterminal_node(eFunDec, 3, $1, $2, $3); 
 					 const char *id = $1->value.string_value;
-					 if(!cur_env->put(id, std::make_shared<Function>(saved_specifier)))
+					 cur_func = std::make_shared<Function>(saved_specifier);
+					 if(!cur_env->put(id, cur_func))
 					 {
 						std::cerr << "Error type 4 at Line " << yylineno 
 							<< ": Redefined function '" << id << "'.\n";
@@ -170,7 +174,13 @@ StmtList: Stmt StmtList { $$ = create_nonterminal_node(eStmtList, 2, $1, $2); }
 		;
 Stmt	: Exp SEMI { $$ = create_nonterminal_node(eStmt, 2, $1, $2); }
 		| CompSt { $$ = create_nonterminal_node(eStmt, 1, $1); }
-		| RETURN Exp SEMI { $$ = create_nonterminal_node(eStmt, 3, $1, $2, $3); }
+		| RETURN Exp SEMI { $$ = create_nonterminal_node(eStmt, 3, $1, $2, $3); 
+							if ($2->type && cur_func->ret_type && 
+									*$2->type != *cur_func->ret_type)
+							{
+								semantic_error(8, yylineno, "Type mismatched for return");
+							}
+						  }
 		| IF LP Exp RP Stmt %prec LOWER_THAN_ELSE { $$ = create_nonterminal_node(eStmt, 
 													5, $1, $2, $3, $4, $5); }
 		| IF LP Exp RP Stmt ELSE Stmt { $$ = create_nonterminal_node(eStmt, 7, $1, $2, $3, $4, $5, $6, $7); }
