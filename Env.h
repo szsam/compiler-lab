@@ -20,7 +20,7 @@ struct Env
 		return table.insert({name, type}).second;
 	}
 
-	std::shared_ptr<Type> get(std::string name)
+	std::shared_ptr<Type> get(std::string name) const
 	{
 		for (const Env *p = this; p != nullptr; p = p->prev.get())
 		{

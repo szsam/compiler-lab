@@ -33,6 +33,7 @@ typedef struct ParseTreeNode {
 	// used in semantic analysis
 	std::string id;
 	std::shared_ptr<Type> type;
+	bool has_lvalue;
 
 	struct ParseTreeNode *prev, *next, *child;
 }ParseTreeNode;

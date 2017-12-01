@@ -201,7 +201,18 @@ Dec		: VarDec { $$ = create_nonterminal_node(eDec, 1, $1);
 		;
 		
 /* Expressions */
-Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
+Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
+						  if (*$1->type != *$3->type)
+						  {
+							std::cerr << "Error type 5 at Line " << yylineno 
+								<< ": Type mismatched for assignment.\n";
+						  }
+						  if (!$1->has_lvalue)
+						  {
+							  std:: cerr << "Error type 6 at Line " << yylineno 
+								<< ": Lvalue required as left operand of assignment\n";
+						  }
+						}
 	| Exp AND Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| Exp OR Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 	| Exp RELOP Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
@@ -228,17 +239,30 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
 							<< ": Undefined function '" << id << "'.\n";
 					  }
 				    }
-	| Exp LB Exp RB { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); }
-	| Exp DOT ID	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
+	| Exp LB Exp RB { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
+					  $$->has_lvalue = true;
+					}
+	| Exp DOT ID	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
+					  $$->has_lvalue = true;
+					}
 	| ID			{ $$ = create_nonterminal_node(eExp, 1, $1); 
 					  const char *id = $1->value.string_value;
-					  if (cur_env->get(id) == nullptr)
+					  if (auto idtype = cur_env->get(id))
+					  {
+						  $$->type = idtype;
+						  $$->has_lvalue = true;
+					  }
+					  else
 					  {
 						fprintf(stderr, "Error type 1 at Line %d: Undefined variable '%s'.\n", yylineno, id);
 					  }
 					}
-	| INT			{ $$ = create_nonterminal_node(eExp, 1, $1); }
-	| FLOAT			{ $$ = create_nonterminal_node(eExp, 1, $1); }
+	| INT			{ $$ = create_nonterminal_node(eExp, 1, $1); 
+					  $$->type = std::make_shared<Basic>(Basic::tINT);
+					}
+	| FLOAT			{ $$ = create_nonterminal_node(eExp, 1, $1);
+					  $$->type = std::make_shared<Basic>(Basic::tFLOAT);
+					}
 	;
 Args: Exp COMMA Args { $$ = create_nonterminal_node(eArgs, 3, $1, $2, $3); }
 	| Exp { $$ = create_nonterminal_node(eArgs, 1, $1); }

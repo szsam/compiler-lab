@@ -93,6 +93,7 @@ ParseTreeNode *create_terminal_node(GrammarSymbol node_type) {
 	ret->node_type = node_type;
 	ret->prev = ret->next = ret->child = NULL;
 	ret->loc = yylineno;
+	ret->has_lvalue = false;
 	return ret;
 }
 
@@ -121,6 +122,7 @@ ParseTreeNode *create_nonterminal_node(GrammarSymbol node_type, int argc, ...) {
     ret->node_type = node_type;
     ret->prev = ret->next = NULL;
     ret->child = head;
+	ret->has_lvalue = false;
 
 	if (ret->child) {
 		ret->loc = head->loc;
