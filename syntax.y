@@ -115,8 +115,9 @@ ExtDecList	: VarDec { $$ = create_nonterminal_node(eExtDefList, 1, $1);
 			
 /* Specifiers */
 Specifier	: TYPE { $$ = create_nonterminal_node(eSpecifier, 1, $1); 
-				     Basic::BasicType t = !strcmp($1->value.string_value, "int") ? Basic::tINT : Basic::tFLOAT;
-				     saved_specifier = std::make_shared<Basic>(t);
+				     if (!strcmp($1->value.string_value, "int"))
+						saved_specifier = std::make_shared<IntegerT>();
+					 else saved_specifier = std::make_shared<FloatT>();
 				   }
 			| StructSpecifier { $$ = create_nonterminal_node(eSpecifier, 1, $1); }
 			;
@@ -135,7 +136,11 @@ VarDec	: ID { $$ = create_nonterminal_node(eVarDec, 1, $1);
 		       $$->id = $1->value.string_value;
 			   $$->type = saved_specifier;
 			 }
-		| VarDec LB INT RB { $$ = create_nonterminal_node(eVarDec, 4, $1, $2, $3, $4); }
+		| VarDec LB INT RB { $$ = create_nonterminal_node(eVarDec, 4, $1, $2, $3, $4); 
+							 // TODO fill in array size field
+							 $$->type = std::make_shared<Array>(0, $1->type); 
+							 $$->id = $1->id;
+						   }
 		;
 FunDec	: ID LP { const char *id = $1->value.string_value;
 				  cur_func = std::make_shared<Function>(saved_specifier);
@@ -264,6 +269,23 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 				    }
 	| Exp LB Exp RB { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
 					  $$->has_lvalue = true;
+					  if ($3->type && typeid(*$3->type) != typeid(IntegerT))
+					  {
+						  semantic_error(12, yylineno, "Array subscript is not an integer");
+					  }
+					  if ($1->type)
+					  {
+						  try
+						  {
+							  auto &arr = dynamic_cast<Array &>(*$1->type);
+							  $$->type = arr.elem;
+						  }
+						  catch (std::bad_cast)
+						  {
+							  semantic_error(10, yylineno, "Subscripted value is not an array");
+						  }
+				
+					  }
 					}
 	| Exp DOT ID	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
 					  $$->has_lvalue = true;
@@ -281,10 +303,10 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 					  }
 					}
 	| INT			{ $$ = create_nonterminal_node(eExp, 1, $1); 
-					  $$->type = std::make_shared<Basic>(Basic::tINT);
+					  $$->type = std::make_shared<IntegerT>();
 					}
 	| FLOAT			{ $$ = create_nonterminal_node(eExp, 1, $1);
-					  $$->type = std::make_shared<Basic>(Basic::tFLOAT);
+					  $$->type = std::make_shared<FloatT>();
 					}
 	;
 Args: Exp COMMA Args { $$ = create_nonterminal_node(eArgs, 3, $1, $2, $3); 
@@ -306,13 +328,9 @@ void yyerror(const char *msg)
 /* Types of operands of arithmetic operator should be identical and int/float */
 std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs)
 {
-	if (lhs && rhs && (typeid(*lhs) == typeid(*rhs)) && (typeid(*lhs) == typeid(Basic)))
-	{
-		auto l = dynamic_cast<Basic &>(*lhs);
-		auto r = dynamic_cast<Basic &>(*rhs);
-		return (l.basic_type == r.basic_type) ? lhs : nullptr;
-	}
-	else return nullptr;	
+	return (lhs && rhs && (typeid(*lhs) == typeid(*rhs)) && 
+			((typeid(*lhs) == typeid(IntegerT)) || (typeid(*lhs) == typeid(FloatT)))   )
+			? lhs : nullptr;
 }
 
 void semantic_error(int type, int lineno, std::string msg)
@@ -329,19 +347,20 @@ void check_function_call(ParseTreeNode *pnode)
   	  std::cerr << "Error type 2 at Line " << yylineno
   	  	<< ": Undefined function '" << id << "'.\n";
   	}
-  	else if (typeid(*idtype) != typeid(Function))
-  	{
-  	  semantic_error(11, yylineno, std::string("'") + id + "' is not a function");
-  	}
   	else
   	{
-  	    auto fun = dynamic_cast<Function &>(*idtype);
-  	    if (!fun.match_args(args))
-  	    {
-  	  	  semantic_error(9, yylineno, "Argument(s) of function call to '" 
-  	  		+ std::string(id) + "' mismatch with its parameter(s)");
-  	    }
-
+		try {
+			auto &fun = dynamic_cast<Function &>(*idtype);
+			if (!fun.match_args(args))
+			{
+			  semantic_error(9, yylineno, "Argument(s) of function call to '" 
+				+ std::string(id) + "' mismatch with its parameter(s)");
+			}
+		}
+		catch (std::bad_cast)
+		{
+			semantic_error(11, yylineno, std::string("'") + id + "' is not a function");
+		}
   	}
 
 }

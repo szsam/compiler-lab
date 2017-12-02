@@ -3,17 +3,11 @@
 #include <memory>
 #include <vector>
 #include <iostream>
+#include <cassert>
 
 struct Type
 {
-	enum TypeTag { BASIC, ARRAY, STRUCTURE, FUNCTION };
-	TypeTag tag;
-
-	Type(TypeTag t) : tag(t) {}
-	virtual bool equal(const Type &rhs) const
-	{
-		return tag == rhs.tag;
-	}
+	virtual bool equal(const Type &rhs) const = 0;
 	virtual std::string to_string() const = 0;
 };
 
@@ -29,19 +23,23 @@ inline bool operator!=(const Type &lhs, const Type &rhs)
 
 struct Basic : public Type
 {
-	enum BasicType { tINT, tFLOAT };
-	BasicType basic_type;
+	Basic() : Type() {}
+//	bool equal(const Type &rhs) const override
+//	{
+//		return true;
+//	}
+};
 
-	Basic(BasicType t) : Type(BASIC), basic_type(t) {}
-	bool equal(const Type &rhs) const override
-	{
-		auto r = dynamic_cast<const Basic&>(rhs);
-		return Type::equal(rhs) && basic_type == r.basic_type;
-	}
-	std::string to_string() const override
-	{
-		return basic_type == tINT ? std::string("int") : std::string("float");
-	}
+struct IntegerT : public Basic
+{
+	bool equal(const Type &rhs) const override { return true; }
+	std::string to_string() const override { return std::string("int"); }
+};
+
+struct FloatT : public Basic
+{
+	bool equal(const Type &rhs) const override { return true; }
+	std::string to_string() const override { return std::string("float"); }
 };
 
 struct Function : public Type
@@ -51,16 +49,19 @@ struct Function : public Type
 	// types of parameters
 	std::vector<std::shared_ptr<Type> > params;
 
-	Function(std::shared_ptr<Type> t) : Type(FUNCTION), ret_type(t) {}
+	Function(std::shared_ptr<Type> t) : Type(), ret_type(t) {}
 	bool equal(const Type &rhs) const override
 	{
-		auto r = dynamic_cast<const Function&>(rhs);
-		return Type::equal(rhs) && *ret_type == *r.ret_type;
-		// TODO compare params
+	// 	auto r = dynamic_cast<const Function&>(rhs);
+	// 	return Type::equal(rhs) && *ret_type == *r.ret_type;
+	// 	// TODO compare params
+	    assert(0);
+	 	return true;
 	}
 
 	std::string to_string() const override
 	{
+		assert(0);
 		return std::string("not implemented");
 	}
 
@@ -77,3 +78,23 @@ struct Function : public Type
 	}
 };
 
+struct Array : public Type
+{
+	int size;
+	std::shared_ptr<Type> elem;
+
+	Array(int s, std::shared_ptr<Type> e) : size(s), elem(e) { }
+
+	bool equal(const Type &rhs) const override
+	{
+		// auto r = dynamic_cast<const Array&>(rhs);
+		assert(0);
+		return true;
+	}
+
+	std::string to_string() const override
+	{
+		assert(0);
+		return std::string("not implemented");
+	}
+};
