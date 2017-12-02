@@ -111,6 +111,7 @@ ExtDefList	: ExtDef ExtDefList { $$ = create_nonterminal_node(eExtDefList, 2, $1
 ExtDef		: Specifier ExtDecList SEMI { $$ = create_nonterminal_node(eExtDef, 3, $1, $2, $3); }
 			| Specifier SEMI { $$ = create_nonterminal_node(eExtDef, 2, $1, $2); }
 			| Specifier FunDec CompSt { $$ = create_nonterminal_node(eExtDef, 3, $1, $2, $3); }
+			| Specifier FunDec error { $$ = create_nonterminal_node(eExtDef, 2, $1, $2); }
 			;
 ExtDecList	: VarDec { $$ = create_nonterminal_node(eExtDefList, 1, $1);
 					   if(!cur_env->put($1->id, $1->type))
