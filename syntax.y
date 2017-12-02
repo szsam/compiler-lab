@@ -3,6 +3,7 @@
 #include <memory>
 #include <string.h>
 #include <iostream>
+#include <vector>
 
 #include "parse_tree.h"
 #include "Type.h"
@@ -22,10 +23,14 @@ int error_occurred = 0;
 std::shared_ptr<Type> saved_specifier;
 std::shared_ptr<Env> cur_env;
 std::shared_ptr<Function> cur_func;
+/* save types of arguments when parsing function call */
+std::vector<std::shared_ptr<Type>> args;
 
 std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs);
 
-void semantic_error(int type, int lineno, const char *msg);
+void semantic_error(int type, int lineno, std::string msg);
+
+void check_function_call(ParseTreeNode *pnode);
 
 %}
 
@@ -153,8 +158,12 @@ FunDec	: ID LP { const char *id = $1->value.string_value;
 					 }
 				   }
 		;
-VarList	: ParamDec COMMA VarList { $$ = create_nonterminal_node(eVarList, 3, $1, $2, $3); }
-		| ParamDec { $$ = create_nonterminal_node(eVarList, 1, $1); }
+VarList	: ParamDec COMMA VarList { $$ = create_nonterminal_node(eVarList, 3, $1, $2, $3); 
+								   if ($1->type) cur_func->params.push_back($1->type);
+								 }
+		| ParamDec { $$ = create_nonterminal_node(eVarList, 1, $1); 
+					 if ($1->type) cur_func->params.push_back($1->type);
+				   }
 		;
 ParamDec	: Specifier VarDec { $$ = create_nonterminal_node(eParamDec, 2, $1, $2); 
 								 if(!cur_env->put($2->id, $2->type))
@@ -162,9 +171,13 @@ ParamDec	: Specifier VarDec { $$ = create_nonterminal_node(eParamDec, 2, $1, $2)
 				  				     std::cerr << "Error type 3 at Line " << yylineno 
 				  				  	<< ": Redefined parameter '" << $2->id << "'.\n";
 				  				 }
+								 else
+								 {
+									 $$->id = $2->id;
+									 $$->type = $2->type;
+								 }
 							   }
 			;
-
 /* Statements */
 CompSt	: LC DefList StmtList RC { $$ = create_nonterminal_node(eCompSt, 4, $1, $2, $3, $4); }
 	    | error RC { $$ = create_nonterminal_node(eCompSt, 1, $2); }
@@ -244,20 +257,10 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 	| MINUS Exp %prec NEG { $$ = create_nonterminal_node(eExp, 2, $1, $2); }
 	| NOT Exp		{ $$ = create_nonterminal_node(eExp, 2, $1, $2); }
 	| ID LP Args RP { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
-					  const char *id = $1->value.string_value;
-					  if (!cur_env->get(id))
-					  {
-						std::cerr << "Error type 2 at Line " << yylineno
-							<< ": Undefined function '" << id << "'.\n";
-					  }
+					  check_function_call($1);
 				    }
 	| ID LP RP		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
-					  const char *id = $1->value.string_value;
-					  if (!cur_env->get(id))
-					  {
-						std::cerr << "Error type 2 at Line " << yylineno
-							<< ": Undefined function '" << id << "'.\n";
-					  }
+					  check_function_call($1);
 				    }
 	| Exp LB Exp RB { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
 					  $$->has_lvalue = true;
@@ -284,8 +287,13 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 					  $$->type = std::make_shared<Basic>(Basic::tFLOAT);
 					}
 	;
-Args: Exp COMMA Args { $$ = create_nonterminal_node(eArgs, 3, $1, $2, $3); }
-	| Exp { $$ = create_nonterminal_node(eArgs, 1, $1); }
+Args: Exp COMMA Args { $$ = create_nonterminal_node(eArgs, 3, $1, $2, $3); 
+					   args.push_back($1->type);
+					 }
+	| Exp { $$ = create_nonterminal_node(eArgs, 1, $1); 
+			args.clear();
+			args.push_back($1->type);	
+		  }
 	;
 
 %%
@@ -307,7 +315,33 @@ std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<
 	else return nullptr;	
 }
 
-void semantic_error(int type, int lineno, const char *msg)
+void semantic_error(int type, int lineno, std::string msg)
 {
 	std::cerr << "Error type " << type << " at Line " << lineno << ": " << msg << ".\n";
+}
+
+void check_function_call(ParseTreeNode *pnode)
+{
+	const char *id = pnode->value.string_value;
+  	auto idtype = cur_env->get(id);
+  	if (!idtype)
+  	{
+  	  std::cerr << "Error type 2 at Line " << yylineno
+  	  	<< ": Undefined function '" << id << "'.\n";
+  	}
+  	else if (typeid(*idtype) != typeid(Function))
+  	{
+  	  semantic_error(11, yylineno, std::string("'") + id + "' is not a function");
+  	}
+  	else
+  	{
+  	    auto fun = dynamic_cast<Function &>(*idtype);
+  	    if (!fun.match_args(args))
+  	    {
+  	  	  semantic_error(9, yylineno, "Argument(s) of function call to '" 
+  	  		+ std::string(id) + "' mismatch with its parameter(s)");
+  	    }
+
+  	}
+
 }
