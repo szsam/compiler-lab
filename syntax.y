@@ -108,9 +108,19 @@ ExtDef		: Specifier ExtDecList SEMI { $$ = create_nonterminal_node(eExtDef, 3, $
 			| Specifier FunDec CompSt { $$ = create_nonterminal_node(eExtDef, 3, $1, $2, $3); }
 			;
 ExtDecList	: VarDec { $$ = create_nonterminal_node(eExtDefList, 1, $1);
-		               cur_env->put($1->id, $1->type);
+					   if(!cur_env->put($1->id, $1->type))
+				   	   {
+				   	    	semantic_error(3, yylineno, "Redefined variable '" + std::string($1->id) + "'");
+				   	   }
 					 }
-			| VarDec COMMA ExtDecList { $$ = create_nonterminal_node(eExtDefList, 3, $1, $2, $3); }
+			| VarDec COMMA ExtDecList { $$ = create_nonterminal_node(eExtDefList, 3, $1, $2, $3); 
+										if(!cur_env->put($1->id, $1->type))
+				   	   					{
+				   	   					 	semantic_error(3, yylineno, "Redefined variable '" 
+												+ std::string($1->id) + "'");
+				   	   					}
+
+									  }
 			;
 			
 /* Specifiers */
@@ -219,15 +229,14 @@ DecList	: Dec { $$ = create_nonterminal_node(eDecList, 1, $1); }
 Dec		: VarDec { $$ = create_nonterminal_node(eDec, 1, $1); 
 				   if(!cur_env->put($1->id, $1->type))
 				   {
-				       std::cerr << "Error type 3 at Line " << yylineno 
-						<< ": Redefined variable '" << $1->id << "'.\n";
+						semantic_error(3, yylineno, "Redefined variable '" + std::string($1->id) + "'");
 				   }
 				 }
 		| VarDec ASSIGNOP Exp { $$ = create_nonterminal_node(eDec, 3, $1, $2, $3); 
 							    if(!cur_env->put($1->id, $1->type))
 							    {
-								   std::cerr << "Error type 3 at Line " << yylineno 
-									<< ": Redefined variable '" << $1->id << "'.\n";
+									semantic_error(3, yylineno, "Redefined variable '" 
+										+ std::string($1->id) + "'");
 							    }
 							  }
 		;
