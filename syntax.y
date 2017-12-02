@@ -4,6 +4,7 @@
 #include <string.h>
 #include <iostream>
 #include <vector>
+#include <map>
 
 #include "parse_tree.h"
 #include "Type.h"
@@ -25,6 +26,10 @@ std::shared_ptr<Env> cur_env;
 std::shared_ptr<Function> cur_func;
 /* save types of arguments when parsing function call */
 std::vector<std::shared_ptr<Type>> args;
+/* set when parsing structure definition */
+bool in_structure = false;
+/* save structures defined in the code */
+std::map<std::string, std::shared_ptr<Structure>> structures;
 
 std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs);
 
@@ -131,14 +136,42 @@ Specifier	: TYPE { $$ = create_nonterminal_node(eSpecifier, 1, $1);
 				   }
 			| StructSpecifier { $$ = create_nonterminal_node(eSpecifier, 1, $1); }
 			;
-StructSpecifier : STRUCT OptTag LC DefList RC { $$ = create_nonterminal_node(eStructSpecifier, 
-													 5, $1, $2, $3, $4, $5); }
+StructSpecifier : STRUCT OptTag LC { cur_env = std::make_shared<Env>(cur_env);
+									 in_structure = true;
+								   }
+				  DefList RC { $$ = create_nonterminal_node(eStructSpecifier, 
+													 5, $1, $2, $3, $5, $6);
+							   auto s = std::make_shared<Structure>(); 
+							   s->fields = cur_env;
+							   cur_env = cur_env->prev;
+							   s->fields->prev = nullptr;
+							   saved_specifier = s;
+							   if (!$2->id.empty())
+							   {
+								   auto ret = structures.insert({$2->id, s});
+								   if (!ret.second)
+									   semantic_error(16, $1->loc, "Redefinition of 'struct " + $2->id + "'"); 
+							   }
+							   in_structure = false;
+							 }
 				| STRUCT Tag { $$ = create_nonterminal_node(eStructSpecifier, 2, $1, $2); }
 				;
-OptTag	: ID { $$ = create_nonterminal_node(eOptTag, 1, $1); }
+OptTag	: ID { $$ = create_nonterminal_node(eOptTag, 1, $1);
+			   $$->id = $1->value.string_value;
+			 }
 		| { $$ = create_nonterminal_node(eOptTag, 0); }
 		;
-Tag	: ID { $$ = create_nonterminal_node(eTag, 1, $1); }
+Tag	: ID { $$ = create_nonterminal_node(eTag, 1, $1);
+		   const char *id = $1->value.string_value;
+		   auto it = structures.find(id);
+		   if (it == structures.end())
+		   {
+			   saved_specifier = nullptr;
+			   semantic_error(17, yylineno, "Undefined structure '" + std::string(id) + "'");
+		   }
+		   else
+			   saved_specifier = it->second;
+	   	 }
 	;
 	
 /* Declarators */
@@ -229,15 +262,17 @@ DecList	: Dec { $$ = create_nonterminal_node(eDecList, 1, $1); }
 Dec		: VarDec { $$ = create_nonterminal_node(eDec, 1, $1); 
 				   if(!cur_env->put($1->id, $1->type))
 				   {
-						semantic_error(3, yylineno, "Redefined variable '" + std::string($1->id) + "'");
+						if (in_structure)
+							semantic_error(15, yylineno, "Redefined field '" + $1->id + "'");
+						else
+							semantic_error(3, yylineno, "Redefined variable '" + $1->id + "'");
 				   }
 				 }
 		| VarDec ASSIGNOP Exp { $$ = create_nonterminal_node(eDec, 3, $1, $2, $3); 
-							    if(!cur_env->put($1->id, $1->type))
-							    {
-									semantic_error(3, yylineno, "Redefined variable '" 
-										+ std::string($1->id) + "'");
-							    }
+								if (in_structure)
+									semantic_error(15, yylineno, "Initialize data member in structure");
+								else if(!cur_env->put($1->id, $1->type))
+									semantic_error(3, yylineno, "Redefined variable '" + $1->id + "'");
 							  }
 		;
 		
@@ -298,6 +333,21 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 					}
 	| Exp DOT ID	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
 					  $$->has_lvalue = true;
+					  const char *id = $3->value.string_value;
+					  if ($1->type)
+					  {
+						  try {
+							  auto &stru = dynamic_cast<Structure &>(*$1->type);
+							  auto field_type = stru.fields->get(id);
+							  if (!field_type)
+								  semantic_error(14, yylineno, "Non-existent field '" + std::string(id) + "'");
+							  $$->type = field_type;
+						  }
+						  catch (std::bad_cast)
+						  {
+							  semantic_error(13, yylineno, "Illegal use of '.'");
+						  }
+					  }
 					}
 	| ID			{ $$ = create_nonterminal_node(eExp, 1, $1); 
 					  const char *id = $1->value.string_value;

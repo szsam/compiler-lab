@@ -4,7 +4,8 @@
 #include <map>
 #include <memory>
 
-#include "Type.h"
+// #include "Type.h"
+struct Type;
 
 struct Env
 {

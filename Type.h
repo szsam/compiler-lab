@@ -5,6 +5,9 @@
 #include <iostream>
 #include <cassert>
 
+// #include "Env.h"
+struct Env;
+
 struct Type
 {
 	virtual bool equal(const Type &rhs) const = 0;
@@ -84,6 +87,25 @@ struct Array : public Type
 	std::shared_ptr<Type> elem;
 
 	Array(int s, std::shared_ptr<Type> e) : size(s), elem(e) { }
+
+	bool equal(const Type &rhs) const override
+	{
+		// auto r = dynamic_cast<const Array&>(rhs);
+		assert(0);
+		return true;
+	}
+
+	std::string to_string() const override
+	{
+		assert(0);
+		return std::string("not implemented");
+	}
+};
+
+struct Structure : public Type
+{
+	std::shared_ptr<Env> fields;
+
 
 	bool equal(const Type &rhs) const override
 	{
