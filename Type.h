@@ -123,7 +123,9 @@ struct StructField
 {
 	std::string name;
 	std::shared_ptr<Type> type;
+
 	StructField(std::string n, std::shared_ptr<Type> t) : name(n), type(t) {}
+	bool operator==(const StructField &rhs) const { return *type == *rhs.type; }
 };
 
 class Structure : public Type
@@ -131,9 +133,8 @@ class Structure : public Type
 public:
 	bool equal(const Type &rhs) const override
 	{
-		// auto r = dynamic_cast<const Array&>(rhs);
-		assert(0);
-		return true;
+		auto r = dynamic_cast<const Structure&>(rhs);
+		return std::equal(fields.begin(), fields.end(), r.fields.begin(), r.fields.end());
 	}
 
 	std::string to_string() const override
