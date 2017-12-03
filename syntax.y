@@ -228,7 +228,10 @@ ParamDec	: Specifier VarDec { $$ = create_nonterminal_node(eParamDec, 2, $1, $2)
 							   }
 			;
 /* Statements */
-CompSt	: LC DefList StmtList RC { $$ = create_nonterminal_node(eCompSt, 4, $1, $2, $3, $4); }
+CompSt	: LC { cur_env = std::make_shared<Env>(cur_env); }
+		  DefList StmtList RC { $$ = create_nonterminal_node(eCompSt, 4, $1, $3, $4, $5);
+								cur_env = cur_env->prev;
+							  }
 	    | error RC { $$ = create_nonterminal_node(eCompSt, 1, $2); }
 		;
 StmtList: Stmt StmtList { $$ = create_nonterminal_node(eStmtList, 2, $1, $2); }
