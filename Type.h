@@ -5,9 +5,10 @@
 #include <iostream>
 #include <cassert>
 #include <utility>
+#include <algorithm>
 
 // #include "Env.h"
-struct Env;
+// struct Env;
 
 struct Type
 {
@@ -118,11 +119,16 @@ struct Array : public Type
 	}
 };
 
-struct Structure : public Type
+struct StructField
 {
-	std::shared_ptr<Env> fields;
+	std::string name;
+	std::shared_ptr<Type> type;
+	StructField(std::string n, std::shared_ptr<Type> t) : name(n), type(t) {}
+};
 
-
+class Structure : public Type
+{
+public:
 	bool equal(const Type &rhs) const override
 	{
 		// auto r = dynamic_cast<const Array&>(rhs);
@@ -135,4 +141,23 @@ struct Structure : public Type
 		assert(0);
 		return std::string("not implemented");
 	}
+
+	bool add_field(std::string n, std::shared_ptr<Type> t)
+	{
+		if (get_field_type(n)) return false;
+		else { 
+			fields.emplace_back(n, t);
+			return true;
+		}
+	}
+
+	std::shared_ptr<Type> get_field_type(std::string name) const
+	{
+		auto it = std::find_if(fields.begin(), fields.end(), 
+			[name](const StructField &f) { return f.name == name; });
+		return (it == fields.end()) ? nullptr : it->type;
+	}
+
+private:
+	std::vector<StructField> fields;
 };

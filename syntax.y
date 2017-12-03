@@ -30,6 +30,9 @@ std::vector<std::shared_ptr<Type>> args;
 bool in_structure = false;
 /* save structures defined in the code */
 std::map<std::string, std::shared_ptr<Structure>> structures;
+/* structure that is being parsed */
+std::shared_ptr<Structure> cur_struct;
+
 
 std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs);
 
@@ -137,19 +140,15 @@ Specifier	: TYPE { $$ = create_nonterminal_node(eSpecifier, 1, $1);
 				   }
 			| StructSpecifier { $$ = create_nonterminal_node(eSpecifier, 1, $1); }
 			;
-StructSpecifier : STRUCT OptTag LC { cur_env = std::make_shared<Env>(cur_env);
+StructSpecifier : STRUCT OptTag LC { cur_struct = std::make_shared<Structure>();
 									 in_structure = true;
 								   }
 				  DefList RC { $$ = create_nonterminal_node(eStructSpecifier, 
 													 5, $1, $2, $3, $5, $6);
-							   auto s = std::make_shared<Structure>(); 
-							   s->fields = cur_env;
-							   cur_env = cur_env->prev;
-							   s->fields->prev = nullptr;
-							   saved_specifier = s;
+							   saved_specifier = cur_struct;
 							   if (!$2->id.empty())
 							   {
-								   auto ret = structures.insert({$2->id, s});
+								   auto ret = structures.insert({$2->id, cur_struct});
 								   if (!ret.second)
 									   semantic_error(16, $1->loc, "Redefinition of 'struct " + $2->id + "'"); 
 							   }
@@ -264,12 +263,16 @@ DecList	: Dec { $$ = create_nonterminal_node(eDecList, 1, $1); }
 		| Dec COMMA DecList { $$ = create_nonterminal_node(eDecList, 3, $1, $2, $3); }
 		;
 Dec		: VarDec { $$ = create_nonterminal_node(eDec, 1, $1); 
-				   if(!cur_env->put($1->id, $1->type))
 				   {
 						if (in_structure)
-							semantic_error(15, yylineno, "Redefined field '" + $1->id + "'");
-						else
-							semantic_error(3, yylineno, "Redefined variable '" + $1->id + "'");
+						{
+							if (!cur_struct->add_field($1->id, $1->type))
+								semantic_error(15, yylineno, "Redefined field '" + $1->id + "'");
+						}
+						else {
+							if(!cur_env->put($1->id, $1->type))
+								semantic_error(3, yylineno, "Redefined variable '" + $1->id + "'");
+						}
 				   }
 				 }
 		| VarDec ASSIGNOP Exp { $$ = create_nonterminal_node(eDec, 3, $1, $2, $3); 
@@ -342,7 +345,7 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 					  {
 						  try {
 							  auto &stru = dynamic_cast<Structure &>(*$1->type);
-							  auto field_type = stru.fields->get(id);
+							  auto field_type = stru.get_field_type(id);
 							  if (!field_type)
 								  semantic_error(14, yylineno, "Non-existent field '" + std::string(id) + "'");
 							  $$->type = field_type;
