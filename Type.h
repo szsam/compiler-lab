@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <cassert>
+#include <utility>
 
 // #include "Env.h"
 struct Env;
@@ -90,15 +91,30 @@ struct Array : public Type
 
 	bool equal(const Type &rhs) const override
 	{
-		// auto r = dynamic_cast<const Array&>(rhs);
-		assert(0);
-		return true;
+		auto r = dynamic_cast<const Array&>(rhs);
+		auto p1 = base_and_dim();
+		auto p2 = r.base_and_dim();
+
+		return (p1.second == p2.second) && (*p1.first == *p2.first);
 	}
 
 	std::string to_string() const override
 	{
 		assert(0);
 		return std::string("not implemented");
+	}
+
+	/* return base type and dimension of array */
+	std::pair<std::shared_ptr<Type>, int> base_and_dim() const
+	{
+		int dimension = 1;
+		auto p = elem;
+		while (p && typeid(*p) == typeid(Array))
+		{
+			p = dynamic_cast<const Array &>(*p).elem;
+			dimension++;
+		}
+		return {p, dimension};
 	}
 };
 
