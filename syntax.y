@@ -34,7 +34,8 @@ std::map<std::string, std::shared_ptr<Structure>> structures;
 std::shared_ptr<Structure> cur_struct;
 
 
-std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs);
+void check_arith_op(ParseTreeNode *dst, ParseTreeNode *src1, ParseTreeNode *src2);
+void check_logical_op(ParseTreeNode *dst, ParseTreeNode *src1, ParseTreeNode *src2);
 
 void semantic_error(int type, int lineno, std::string msg);
 
@@ -190,8 +191,7 @@ FunDec	: ID LP { const char *id = $1->value.string_value;
 
 		  		  if(!cur_env->put(id, cur_func))
 				  {
-				     std::cerr << "Error type 4 at Line " << yylineno 
-						<< ": Redefined function '" << id << "'.\n";
+					 semantic_error(4, yylineno, "Redefined function '" + std::string(id) + "'");
 				  }
 				}
 		  VarList RP { $$ = create_nonterminal_node(eFunDec, 4, $1, $2, $4, $5); 
@@ -201,8 +201,7 @@ FunDec	: ID LP { const char *id = $1->value.string_value;
 					 cur_func = std::make_shared<Function>(saved_specifier);
 					 if(!cur_env->put(id, cur_func))
 					 {
-						std::cerr << "Error type 4 at Line " << yylineno 
-							<< ": Redefined function '" << id << "'.\n";
+						semantic_error(4, yylineno, "Redefined function '" + std::string(id) + "'");
 					 }
 				   }
 		;
@@ -216,8 +215,8 @@ VarList	: ParamDec COMMA VarList { $$ = create_nonterminal_node(eVarList, 3, $1,
 ParamDec	: Specifier VarDec { $$ = create_nonterminal_node(eParamDec, 2, $1, $2); 
 								 if(!cur_env->put($2->id, $2->type))
 				  				 {
-				  				     std::cerr << "Error type 3 at Line " << yylineno 
-				  				  	<< ": Redefined parameter '" << $2->id << "'.\n";
+									semantic_error(3, yylineno, "Redefined parameter '" 
+										+ std::string($2->id) + "'");
 				  				 }
 								 else
 								 {
@@ -246,7 +245,7 @@ Stmt	: Exp SEMI { $$ = create_nonterminal_node(eStmt, 2, $1, $2); }
 							}
 						  }
 		| IF LP Exp RP Stmt %prec LOWER_THAN_ELSE { $$ = create_nonterminal_node(eStmt, 
-													5, $1, $2, $3, $4, $5); }
+													 5, $1, $2, $3, $4, $5); }
 		| IF LP Exp RP Stmt ELSE Stmt { $$ = create_nonterminal_node(eStmt, 7, $1, $2, $3, $4, $5, $6, $7); }
 		| WHILE LP Exp RP Stmt { $$ = create_nonterminal_node(eStmt, 5, $1, $2, $3, $4, $5); }
 		| error SEMI { $$ = create_nonterminal_node(eStmt, 1, $2); }
@@ -287,31 +286,47 @@ Dec		: VarDec { $$ = create_nonterminal_node(eDec, 1, $1);
 Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
 						  if ($1->type && $3->type && *$1->type != *$3->type)
 						  {
-							std::cerr << "Error type 5 at Line " << yylineno 
-								<< ": Type mismatched for assignment.\n";
+						      semantic_error(5, yylineno, "Type mismatched for assignment");
 						  }
 						  if (!$1->has_lvalue)
 						  {
-							  std:: cerr << "Error type 6 at Line " << yylineno 
-								<< ": Lvalue required as left operand of assignment\n";
+							  semantic_error(6, yylineno, "Lvalue required as left operand of assignment");
 						  }
 						}
-	| Exp AND Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
-	| Exp OR Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
-	| Exp RELOP Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
+	| Exp AND Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
+						  check_logical_op($$, $1, $3);
+						}
+	| Exp OR Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
+						  check_logical_op($$, $1, $3);
+						}
+	| Exp RELOP Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
+						  check_arith_op($$, $1, $3);
+						}
 	| Exp PLUS Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
-						  $$->type = check_arith_op($1->type, $3->type);
-						  if (!$$->type)
-						  {
-							semantic_error(7, yylineno, "Type mismatched for operands");
-						  }
+						  check_arith_op($$, $1, $3);
 						}
-	| Exp MINUS Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
-	| Exp STAR Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
-	| Exp DIV Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
-	| LP Exp RP			{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); }
-	| MINUS Exp %prec NEG { $$ = create_nonterminal_node(eExp, 2, $1, $2); }
-	| NOT Exp		{ $$ = create_nonterminal_node(eExp, 2, $1, $2); }
+	| Exp MINUS Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
+						  check_arith_op($$, $1, $3);
+						}
+	| Exp STAR Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
+						  check_arith_op($$, $1, $3);
+						}
+	| Exp DIV Exp		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
+						  check_arith_op($$, $1, $3);
+						}
+	| LP Exp RP			{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
+						  $$->type = $2->type;
+						}
+	| MINUS Exp %prec NEG { $$ = create_nonterminal_node(eExp, 2, $1, $2);
+							$$->type = $2->type;
+							if (!$2->type->is_basic())
+								semantic_error(7, yylineno, "Wrong argument type to unary minus");
+						  }
+	| NOT Exp		{ $$ = create_nonterminal_node(eExp, 2, $1, $2); 
+					  $$->type = $2->type;
+					  if (!$2->type->is_integer())
+					      semantic_error(7, yylineno, "Wrong argument type to unary exclamation mark");
+					}
 	| ID LP Args RP { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
 					  check_function_call($1);
 				    }
@@ -320,7 +335,7 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 				    }
 	| Exp LB Exp RB { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
 					  $$->has_lvalue = true;
-					  if ($3->type && typeid(*$3->type) != typeid(IntegerT))
+					  if ($3->type && !$3->type->is_integer())
 					  {
 						  semantic_error(12, yylineno, "Array subscript is not an integer");
 					  }
@@ -365,7 +380,7 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 					  }
 					  else
 					  {
-						fprintf(stderr, "Error type 1 at Line %d: Undefined variable '%s'.\n", yylineno, id);
+						semantic_error(1, yylineno, "Undefined variable '" + std::string(id) + "'");
 					  }
 					}
 	| INT			{ $$ = create_nonterminal_node(eExp, 1, $1); 
@@ -392,11 +407,33 @@ void yyerror(const char *msg)
 }
 
 /* Types of operands of arithmetic operator should be identical and int/float */
-std::shared_ptr<Type> check_arith_op(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs)
+std::shared_ptr<Type> check_arith_op_helper(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs)
 {
-	return (lhs && rhs && (typeid(*lhs) == typeid(*rhs)) && 
-			((typeid(*lhs) == typeid(IntegerT)) || (typeid(*lhs) == typeid(FloatT)))   )
+	return (lhs && rhs && (*lhs == *rhs) && lhs->is_basic() )
 			? lhs : nullptr;
+}
+
+void check_arith_op(ParseTreeNode *dst, ParseTreeNode *src1, ParseTreeNode *src2)
+{
+	dst->type = check_arith_op_helper(src1->type, src2->type);
+	if (!dst->type)
+		semantic_error(7, yylineno, "Type mismatched for operands");
+
+}
+
+/* Types of operands of logical operator should be both int */
+std::shared_ptr<Type> check_logical_op_helper(std::shared_ptr<Type> lhs, std::shared_ptr<Type> rhs)
+{
+	return (lhs && rhs && (*lhs == *rhs) && (lhs->is_integer()))
+			? lhs : nullptr;
+}
+
+void check_logical_op(ParseTreeNode *dst, ParseTreeNode *src1, ParseTreeNode *src2)
+{
+	dst->type = check_logical_op_helper(src1->type, src2->type);
+	if (!dst->type)
+		semantic_error(7, yylineno, "Type mismatched for operands");
+
 }
 
 void semantic_error(int type, int lineno, std::string msg)
@@ -410,8 +447,7 @@ void check_function_call(ParseTreeNode *pnode)
   	auto idtype = cur_env->get(id);
   	if (!idtype)
   	{
-  	  std::cerr << "Error type 2 at Line " << yylineno
-  	  	<< ": Undefined function '" << id << "'.\n";
+		semantic_error(2, yylineno, "Undefined function '" + std::string(id) + "'");
   	}
   	else
   	{

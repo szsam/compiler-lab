@@ -14,6 +14,8 @@ struct Type
 {
 	virtual bool equal(const Type &rhs) const = 0;
 	virtual std::string to_string() const = 0;
+	virtual bool is_basic() const { return false; };
+	virtual bool is_integer() const { return false; };
 };
 
 inline bool operator==(const Type &lhs, const Type &rhs)
@@ -29,21 +31,20 @@ inline bool operator!=(const Type &lhs, const Type &rhs)
 struct Basic : public Type
 {
 	Basic() : Type() {}
-//	bool equal(const Type &rhs) const override
-//	{
-//		return true;
-//	}
+	bool is_basic() const override { return true; }
+	bool equal(const Type &rhs) const override { return true; }
 };
 
 struct IntegerT : public Basic
 {
-	bool equal(const Type &rhs) const override { return true; }
+	// bool equal(const Type &rhs) const override { return true; }
 	std::string to_string() const override { return std::string("int"); }
+	bool is_integer() const override { return true; }
 };
 
 struct FloatT : public Basic
 {
-	bool equal(const Type &rhs) const override { return true; }
+	// bool equal(const Type &rhs) const override { return true; }
 	std::string to_string() const override { return std::string("float"); }
 };
 
@@ -55,6 +56,7 @@ struct Function : public Type
 	std::vector<std::shared_ptr<Type> > params;
 
 	Function(std::shared_ptr<Type> t) : Type(), ret_type(t) {}
+
 	bool equal(const Type &rhs) const override
 	{
 	// 	auto r = dynamic_cast<const Function&>(rhs);
