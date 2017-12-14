@@ -1,4 +1,1 @@
-syntax.tab*
-syntax.output
-lex.yy.c
-parser
+build/
