@@ -12,7 +12,7 @@ struct CompSt : public Statement
 	VEC<Def> def_list;
 	VEC<SP<Statement>> stmt_list;
 
-	CompSt(VEC<Def> &d, VEC<SP<Statement>> s) : def_list(d), stmt_list(s) {}
+	CompSt(VEC<Def> &d, const VEC<SP<Statement>> &s) : def_list(d), stmt_list(s) {}
 	DEFINE_ACCEPT
 };
 

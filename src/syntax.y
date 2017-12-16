@@ -94,7 +94,7 @@ void semantic_error(int type, int lineno, std::string msg);
 /* productions */
 /* High-level Definitions */
 Program 	: ExtDefList { $$ = create_nonterminal_node(eProgram, 1, $1); root = $$; 
-						   ast_root = std::make_shared<Program>($1->ext_def_list);
+						   ast_root = std::make_shared<Program>(*$1->ext_def_list);
 						 }
 			;
 ExtDefList	: ExtDef ExtDefList { $$ = create_nonterminal_node(eExtDefList, 2, $1, $2); 
@@ -107,7 +107,7 @@ ExtDefList	: ExtDef ExtDefList { $$ = create_nonterminal_node(eExtDefList, 2, $1
 			;
 ExtDef		: Specifier ExtDecList SEMI { $$ = create_nonterminal_node(eExtDef, 3, $1, $2, $3); 
 										  $$->ext_def = std::make_shared<GlobalVar>(
-													$1->specifier, $2->var_dec_list);
+													$1->specifier, *$2->var_dec_list);
 										}
 			| Specifier SEMI { $$ = create_nonterminal_node(eExtDef, 2, $1, $2); 
 							   $$->ext_def = $1->specifier;
@@ -168,7 +168,7 @@ VarDec	: ID { $$ = create_nonterminal_node(eVarDec, 1, $1);
 						   }
 		;
 FunDec	: ID LP VarList RP { $$ = create_nonterminal_node(eFunDec, 4, $1, $2, $3, $4); 
-							 $$->fun_dec = std::make_shared<FunDec>($1->string_value, $3->var_list);
+							 $$->fun_dec = std::make_shared<FunDec>($1->string_value, *$3->var_list);
 					       }
 		| ID LP RP { $$ = create_nonterminal_node(eFunDec, 3, $1, $2, $3); 
 					 $$->fun_dec = std::make_shared<FunDec>($1->string_value);	
@@ -232,15 +232,12 @@ DefList	: Def DefList { $$ = create_nonterminal_node(eDefList, 2, $1, $2);
 		  }
 		;
 Def		: Specifier DecList SEMI { $$ = create_nonterminal_node(eDef, 3, $1, $2, $3); 
-								   std::cout << "Def : .. DecList .. " << $2->dec_list << std::endl;
-								   auto tmp = std::make_shared<Def>($1->specifier, *$2->dec_list);
-								   $$->def = tmp;
+								   $$->def = std::make_shared<Def>($1->specifier, *$2->dec_list);
 								 }
 		| error SEMI { $$ = create_nonterminal_node(eDef, 1, $2); }
 		;
 DecList	: Dec { $$ = create_nonterminal_node(eDecList, 1, $1);
 				$$->dec_list = std::make_shared<VEC<Dec>>(1, *$1->dec);
-				std::cout << "DecList : Dec " << $$->dec_list << std::endl;
 			  }
 		| Dec COMMA DecList { $$ = create_nonterminal_node(eDecList, 3, $1, $2, $3); 
 							  $$->dec_list = $3->dec_list;

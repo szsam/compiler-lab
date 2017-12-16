@@ -30,7 +30,7 @@ struct FunCall : public Expression
 	std::string name;
 	VEC<SP<Expression>> args;
 
-	FunCall(std::string n, const VEC<SP<Expression>> &a = VEC<SP<Expression>>()) :
+	FunCall(const std::string &n, const VEC<SP<Expression>> &a = VEC<SP<Expression>>()) :
 		name(n), args(a) {}
 	DEFINE_ACCEPT
 };
@@ -39,7 +39,7 @@ struct Identifier : public Expression
 {
 	std::string id;
 
-	Identifier(std::string s) : id(s) {}
+	Identifier(const std::string &s) : id(s) {}
 	DEFINE_ACCEPT
 };
 
@@ -79,7 +79,7 @@ struct Relop : public BinaryOp
 {
 	std::string str;
 
-	Relop(SP<Expression> l, SP<Expression> r, std::string s) : 
+	Relop(SP<Expression> l, SP<Expression> r, const std::string &s) : 
 		BinaryOp(l, r) ,str(s) {}
 	DEFINE_ACCEPT
 };

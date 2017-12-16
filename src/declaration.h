@@ -38,9 +38,9 @@ struct Specifier : public ExtDef
 
 struct Program : public ASTNode
 {
-	PVP<ExtDef> ext_def_list;
+	VEC<SP<ExtDef>> ext_def_list;
 
-	Program(PVP<ExtDef> p) : ext_def_list(p) {}
+	Program(const VEC<SP<ExtDef>> &v) : ext_def_list(v) {}
 	DEFINE_ACCEPT
 };
 
@@ -50,7 +50,7 @@ struct VarDec : public ASTNode
 	std::string id;
 	VEC<int> indices;
 
-	VarDec(std::string s) : id(s) {}
+	VarDec(const std::string &s) : id(s) {}
 	DEFINE_ACCEPT
 };
 
@@ -75,9 +75,10 @@ struct Def : public ASTNode
 struct GlobalVar : public ExtDef
 {
 	SP<Specifier> specifier;
-	PVP<VarDec> var_dec_list;
+	VEC<SP<VarDec>> var_dec_list;
 
-	GlobalVar(SP<Specifier> s, PVP<VarDec> v) : specifier(s), var_dec_list(v) {}
+	GlobalVar(SP<Specifier> s, const VEC<SP<VarDec>> &v) : 
+		specifier(s), var_dec_list(v) {}
 	DEFINE_ACCEPT
 };
 
@@ -87,11 +88,11 @@ struct CompSt;
 struct FunDec : public ExtDef
 {
 	std::string name;
-	SP<VEC<Param>>  params;
+	VEC<Param>  params;
 	SP<Specifier> ret_type;
 	SP<CompSt> body;
 
-	FunDec(std::string n, SP<VEC<Param>> p = nullptr) :
+	FunDec(const std::string &n, const VEC<Param> &p = VEC<Param>()) :
 		name(n), params(p) {}
 	DEFINE_ACCEPT
 };
@@ -100,7 +101,7 @@ struct BasicType : public Specifier
 {
 	std::string type;
 
-	BasicType(std::string t) : type(t) {}
+	BasicType(const std::string &t) : type(t) {}
 	DEFINE_ACCEPT
 };
 
@@ -109,6 +110,7 @@ struct StructSpecifier : public Specifier
 	std::string name;
 	VEC<Def> def_list;
 
-	StructSpecifier(std::string n, const VEC<Def> &d = std::vector<Def>()) : name(n), def_list(d) {}
+	StructSpecifier(const std::string &n, const VEC<Def> &d = std::vector<Def>()) 
+		: name(n), def_list(d) {}
 	DEFINE_ACCEPT
 };
