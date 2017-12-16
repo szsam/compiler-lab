@@ -14,6 +14,7 @@ YCFILE := $(YFILE:%.y=%.tab.cpp)
 YHFILE := $(YFILE:%.y=%.tab.h)
 
 SRCS := $(shell find $(SRC_DIRS) -name *.cpp)
+# Just in case LCFILE and YCFILE are already in SRC_DIRS
 SRCS := $(filter-out $(LCFILE) $(YCFILE), $(SRCS))
 SRCS += $(LCFILE) $(YCFILE)
 
@@ -23,7 +24,7 @@ DEPS := $(OBJS:.o=.d)
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -std=c++14
+CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -std=c++14 -g
 LDFLAGS ?= -lfl -ly
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
