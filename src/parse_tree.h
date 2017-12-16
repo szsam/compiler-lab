@@ -32,7 +32,7 @@ typedef struct ParseTreeNode {
 		SP<ExtDef> ext_def;
 		PVP<ExtDef> ext_def_list;
 		SP<VarDec> var_dec;
-		PVP<VarDec> var_dec_list;
+		SP<VEC<VarDec>> var_dec_list;
 		Param param_dec;
 		SP<VEC<Param>> var_list;
 		SP<FunDec> fun_dec;

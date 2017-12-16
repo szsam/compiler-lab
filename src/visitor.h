@@ -15,9 +15,6 @@ struct Visitor
 
 	virtual void visit(Program &node) = 0;
 
-	virtual void visit(VarDec &node) = 0;
-	virtual void visit(Dec &node) = 0;
-	virtual void visit(Def &node) = 0;
 	virtual void visit(GlobalVar &node) = 0;
 	virtual void visit(FunDec &node) = 0;
 	virtual void visit(BasicType &node) = 0;

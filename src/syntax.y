@@ -120,11 +120,11 @@ ExtDef		: Specifier ExtDecList SEMI { $$ = create_nonterminal_node(eExtDef, 3, $
 			| Specifier FunDec error { $$ = create_nonterminal_node(eExtDef, 2, $1, $2); }
 			;
 ExtDecList	: VarDec { $$ = create_nonterminal_node(eExtDefList, 1, $1);
-					   $$->var_dec_list = std::make_shared<VEC<SP<VarDec>>>();
+					   $$->var_dec_list = std::make_shared<VEC<VarDec>>();
 					 }
 			| VarDec COMMA ExtDecList { $$ = create_nonterminal_node(eExtDefList, 3, $1, $2, $3); 
 										$$->var_dec_list = $3->var_dec_list;
-										$$->var_dec_list->push_back($1->var_dec);
+										$$->var_dec_list->push_back(*$1->var_dec);
 									  }
 			;
 			

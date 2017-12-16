@@ -45,39 +45,36 @@ struct Program : public ASTNode
 };
 
 struct Expression;
-struct VarDec : public ASTNode
+struct VarDec
 {
 	std::string id;
 	VEC<int> indices;
 
 	VarDec(const std::string &s) : id(s) {}
-	DEFINE_ACCEPT
 };
 
-struct Dec : public ASTNode
+struct Dec
 {
 	VarDec var_dec;
 	SP<Expression> initial;
 
 	Dec(VarDec &v, SP<Expression> i = nullptr) : var_dec(v), initial(i) {}
-	DEFINE_ACCEPT
 };
 
-struct Def : public ASTNode
+struct Def
 {
 	SP<Specifier> specifier;
 	VEC<Dec> dec_list;
 
 	Def(SP<Specifier> s, VEC<Dec> &d) : specifier(s), dec_list(d) {}
-	DEFINE_ACCEPT
 };
 
 struct GlobalVar : public ExtDef
 {
 	SP<Specifier> specifier;
-	VEC<SP<VarDec>> var_dec_list;
+	VEC<VarDec> var_dec_list;
 
-	GlobalVar(SP<Specifier> s, const VEC<SP<VarDec>> &v) : 
+	GlobalVar(SP<Specifier> s, const VEC<VarDec> &v) : 
 		specifier(s), var_dec_list(v) {}
 	DEFINE_ACCEPT
 };
