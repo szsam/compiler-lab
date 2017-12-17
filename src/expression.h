@@ -2,10 +2,12 @@
 
 #include "declaration.h"
 #include "statement.h"
+#include "symbol_table.h"
 
 struct Expression : public Statement
 {
 	// SP<Type> type;
+	ir::Variable place;
 	// DEFINE_ACCEPT
 };
 
@@ -38,6 +40,7 @@ struct FunCall : public Expression
 struct Identifier : public Expression
 {
 	std::string id;
+	SymbolInfo sym_info;
 
 	Identifier(const std::string &s) : id(s) {}
 	DEFINE_ACCEPT

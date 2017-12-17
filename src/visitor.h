@@ -8,6 +8,7 @@ struct Plus; struct Minus; struct Multiply; struct Divide; struct Negative;
 struct And; struct Or; struct Not;
 struct Relop; struct Subscript; struct MemberAccess; struct Assign;
 struct FunCall; struct Identifier; struct Integer; struct Float;
+struct BinaryOp;
 
 struct Visitor
 {

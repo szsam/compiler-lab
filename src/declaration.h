@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <list>
 #include <memory>
 #include <string>
 #include <utility>
@@ -15,12 +16,15 @@ using PVP = SP<VEC<SP<T>>>;
 
 
 #include "visitor.h"
+#include "Type.h"
+#include "ir.h"
 
 #define DEFINE_ACCEPT void accept(Visitor &visitor) override { visitor.visit(*this); }
 
 struct ASTNode
 {
 	int row;
+	std::list<std::shared_ptr<ir::InterCode>> code;
 
 	virtual void accept(Visitor &visitor) = 0;
 	virtual ~ASTNode() = default;
@@ -33,7 +37,7 @@ struct ExtDef : public ASTNode
 
 struct Specifier : public ExtDef
 {
-
+	SP<Type> type;
 };
 
 struct Program : public ASTNode
@@ -96,9 +100,9 @@ struct FunDec : public ExtDef
 
 struct BasicType : public Specifier
 {
-	std::string type;
+	std::string str;
 
-	BasicType(const std::string &t) : type(t) {}
+	BasicType(const std::string &s) : str(s) {}
 	DEFINE_ACCEPT
 };
 

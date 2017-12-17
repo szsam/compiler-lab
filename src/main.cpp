@@ -14,6 +14,11 @@ using namespace std;
 #include "declaration.h"
 extern SP<Program> ast_root;
 
+#include "dec_check_visitor.h"
+#include "ir_gen_visitor.h"
+
+#include <fstream>
+
 int main(int argc, char** argv)
 {
 	if (argc <= 1) return 1;
@@ -35,6 +40,18 @@ int main(int argc, char** argv)
 	delete_parse_tree(root);
 
 	cout << "AST root: " << ast_root.get() << endl;	
+
+	DecCheckVisitor dec_checker;
+	ast_root->accept(dec_checker);
+
+	InterCodeGenVisitor inter_code_gen;
+	ast_root->accept(inter_code_gen);
+
+	ofstream fout("a.ir");
+	for (const auto &p_code : ast_root->code)
+	{
+		fout << *p_code << endl;
+	}
 
 	return 0;
 }

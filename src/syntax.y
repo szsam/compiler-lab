@@ -1,16 +1,16 @@
 %{
 #include <stdio.h>
-#include <memory>
-#include <string.h>
+// #include <memory>
+// #include <string.h>
 #include <iostream>
-#include <vector>
-#include <map>
+// #include <vector>
+// #include <map>
 
 #include "parse_tree.h"
-#include "Type.h"
-#include "Env.h"
+// #include "Type.h"
+// #include "Env.h"
 
-#include "expression.h"
+// #include "expression.h"
 
 /* defined in lex.yy.c */
 int yylex();
@@ -287,10 +287,10 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 					  $$->exp = std::make_shared<Not>($2->exp);
 					}
 	| ID LP Args RP { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
-					  $$->fun_call = std::make_shared<FunCall>($1->string_value, *$3->args);
+					  $$->exp = std::make_shared<FunCall>($1->string_value, *$3->args);
 				    }
 	| ID LP RP		{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
-					  $$->fun_call = std::make_shared<FunCall>($1->string_value);
+					  $$->exp = std::make_shared<FunCall>($1->string_value);
 				    }
 	| Exp LB Exp RB { $$ = create_nonterminal_node(eExp, 4, $1, $2, $3, $4); 
 					  $$->exp = std::make_shared<Subscript>($1->exp, $3->exp);

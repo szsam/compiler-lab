@@ -50,7 +50,7 @@ typedef struct ParseTreeNode {
 		SP<VEC<Def>> def_list;
 
 		SP<Expression> exp;
-		SP<FunCall> fun_call;
+		// SP<FunCall> fun_call;
 		PVP<Expression> args;
 	// };
 	int loc;	// line number 
