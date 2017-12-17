@@ -4,3 +4,4 @@ src/*.tab*
 src/*.output
 *.txt
 *.ir
+*.pyc
