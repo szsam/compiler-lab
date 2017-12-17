@@ -7,21 +7,21 @@
 
 #include "Type.h"
 // struct Type;
-struct Symbol
+struct SymbolInfo
 {
 	std::shared_ptr<Type> type;
 	// variable number, used in intermediate code
 	int var_no;
 
-	Symbol() : type(), var_no(-1) {}
-	Symbol(std::shared_ptr<Type> t) : type(t), var_no(-1) {}
-	Symbol(std::shared_ptr<Type> t, int no) : type(t), var_no(no) {}
+	SymbolInfo() : type(), var_no(-1) {}
+	SymbolInfo(std::shared_ptr<Type> t) : type(t), var_no(-1) {}
+	SymbolInfo(std::shared_ptr<Type> t, int no) : type(t), var_no(no) {}
 };
 
 class SymbolTable
 {
 private:
-	std::list< std::unordered_map<std::string, Symbol> > tables;
+	std::list< std::unordered_map<std::string, SymbolInfo> > tables;
 	int variable_no = 0;
 
 	// methods
@@ -32,7 +32,7 @@ public:
 
 	bool put(const std::string &name, std::shared_ptr<Type> type)
 	{
-		Symbol sym(type);
+		SymbolInfo sym(type);
 		if (type->is_basic()) 
 		{
 			++variable_no;
@@ -41,7 +41,7 @@ public:
 		return tables.back().insert({name, sym}).second;
 	}
 
-	const Symbol *get(const std::string &name) const
+	const SymbolInfo *get(const std::string &name) const
 	{
 		for (auto it_table = tables.crbegin(); it_table != tables.crend(); ++it_table)
 		{
