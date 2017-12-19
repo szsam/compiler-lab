@@ -92,6 +92,7 @@ struct FunDec : public ExtDef
 	VEC<Param>  params;
 	SP<Specifier> ret_type;
 	SP<CompSt> body;
+	VEC<ir::Variable> ir_params;  // parameters' name in IR
 
 	FunDec(const std::string &n, const VEC<Param> &p = VEC<Param>()) :
 		name(n), params(p) {}

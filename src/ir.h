@@ -177,4 +177,39 @@ struct Write : public InterCode
 	}
 };
 
+struct Param : public InterCode
+{
+	Variable operand;
+
+	Param(const Variable &var) : operand(var) {}
+	std::ostream& output(std::ostream &out) const override
+	{
+		return out << "PARAM " << operand;
+	}
+};
+
+struct Arg : public InterCode
+{
+	std::shared_ptr<Operand> operand;
+
+	Arg(std::shared_ptr<Operand> x) : operand(x) {}
+	std::ostream& output(std::ostream &out) const override
+	{
+		return out << "ARG " << *operand;
+	}
+};
+
+struct FunCall : public InterCode
+{
+	std::string fun_name;
+	Variable result;
+
+	FunCall(const std::string str, const Variable &var) 
+		: fun_name(str), result(var) {}
+	std::ostream& output(std::ostream &out) const override
+	{
+		return out << result << " := CALL " << fun_name;
+	}
+};
+
 }	// namespace ir

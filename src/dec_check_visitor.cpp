@@ -29,7 +29,10 @@ void DecCheckVisitor::visit(FunDec & node)
 	{
 		it->first->accept(*this);
 		assert(it->second->indices.empty());
-		table.put(it->second->id, it->first->type);
+		auto v1 = new_var();
+		table.put(it->second->id, SymbolInfo(it->first->type, v1));
+		const auto &ir_name = table.get(it->second->id)->ir_name;
+		node.ir_params.push_back(ir_name);
 	}
 	node.body->accept(*this);
 	table.exit_scope();
@@ -64,7 +67,7 @@ void DecCheckVisitor::visit(CompSt & node)
 			if (it_dec->var_dec.indices.empty())
 			{
 				const auto &id = it_dec->var_dec.id;
-				bool ret = table.put(id, base_type);
+				bool ret = table.put(id, SymbolInfo(base_type, new_var()));
 				assert(ret);
 			}
 			else assert(0);

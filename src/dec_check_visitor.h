@@ -4,6 +4,7 @@
 #include "declaration.h"
 #include "statement.h"
 #include "expression.h"
+#include "ir.h"
 
 // #include <iostream>
 
@@ -45,6 +46,11 @@ struct DecCheckVisitor : public Visitor
 
 private:
 	SymbolTable table;
+	int variable_no = 0;
 
 	void visit_bop(BinaryOp &node);
+	ir::Variable new_var() 
+	{ 
+		return ir::Variable("v" + std::to_string(++variable_no)); 
+	}
 };

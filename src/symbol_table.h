@@ -11,13 +11,11 @@
 struct SymbolInfo
 {
 	std::shared_ptr<Type> type;
-	// variable number, used in intermediate code
-	// int var_no;
 	// variable name used in intermediate code
 	ir::Variable ir_name;
 
 	SymbolInfo() = default;
-	SymbolInfo(std::shared_ptr<Type> t) : type(t) {}
+	explicit SymbolInfo(std::shared_ptr<Type> t) : type(t) {}
 	SymbolInfo(std::shared_ptr<Type> t, const ir::Variable &var) 
 		: type(t), ir_name(var) {}
 };
@@ -26,24 +24,14 @@ class SymbolTable
 {
 private:
 	std::list< std::unordered_map<std::string, SymbolInfo> > tables;
-	int variable_no = 0;
-
-	// methods
 
 public:
 	void enter_scope() { tables.emplace_back(); }
 	void exit_scope() { tables.pop_back(); }
 
-	bool put(const std::string &name, std::shared_ptr<Type> type)
+	bool put(const std::string &name, const SymbolInfo &sym_info)
 	{
-		SymbolInfo sym(type);
-		if (type->is_basic()) 
-		{
-			++variable_no;
-			// sym.var_no = variable_no;
-			sym.ir_name = ir::Variable("v" + std::to_string(variable_no));
-		}
-		return tables.back().insert({name, sym}).second;
+		return tables.back().insert({name, sym_info}).second;
 	}
 
 	const SymbolInfo *get(const std::string &name) const

@@ -28,7 +28,10 @@ void InterCodeGenVisitor::visit(GlobalVar & node)
 void InterCodeGenVisitor::visit(FunDec & node)
 {
 	node.code.push_back(std::make_shared<ir::Function>(node.name));
-	// node.params;
+
+	for (const auto &param : node.ir_params)
+		node.code.push_back(std::make_shared<ir::Param>(param));
+
 	node.body->accept(*this);
 	node.code.splice(node.code.end(), node.body->code);
 }
@@ -196,7 +199,25 @@ void InterCodeGenVisitor::visit(FunCall & node)
 		node.code.push_back(std::make_shared<ir::Write>(
 					std::make_shared<ir::Variable>(t1)));
 	}
-	else assert(0);
+	else
+	{
+		std::vector<ir::Variable> arg_list;
+		for (auto it = node.args.begin(); it != node.args.end(); ++it)
+		{
+			auto t1 = new_temp();
+			(*it)->place = t1;
+			(*it)->accept(*this);
+			node.code.splice(node.code.end(), (*it)->code);
+			arg_list.push_back(t1);
+		}	
+		for (const auto &arg : arg_list)
+		{
+			node.code.push_back(std::make_shared<ir::Arg>(
+					std::make_shared<ir::Variable>(arg)));
+		}
+		node.code.push_back(std::make_shared<ir::FunCall>(
+					node.name, node.place));
+	}
 }
 
 void InterCodeGenVisitor::translate_cond(Relop &node)
