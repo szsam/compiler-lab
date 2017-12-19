@@ -24,6 +24,13 @@ void DecCheckVisitor::visit(GlobalVar & node)
 void DecCheckVisitor::visit(FunDec & node)
 {
 	table.enter_scope();
+
+	for (auto it = node.params.rbegin(); it != node.params.rend(); ++it)
+	{
+		it->first->accept(*this);
+		assert(it->second->indices.empty());
+		table.put(it->second->id, it->first->type);
+	}
 	node.body->accept(*this);
 	table.exit_scope();
 }
@@ -77,6 +84,13 @@ void DecCheckVisitor::visit(Return & node)
 	node.exp->accept(*this);
 }
 
+void DecCheckVisitor::visit(Branch & node)
+{
+	node.cond->accept(*this);
+	node.if_body->accept(*this);
+	if (node.else_body)
+		node.else_body->accept(*this);
+}
 
 
 void DecCheckVisitor::visit_bop(BinaryOp & node)

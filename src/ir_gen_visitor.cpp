@@ -64,12 +64,44 @@ void InterCodeGenVisitor::visit(Return & node)
 			std::make_shared<ir::Variable>(t1)));
 }
 
+void InterCodeGenVisitor::visit(Branch &node)
+{
+	int label1 = new_label();
+	int label2 = new_label();
+	int label3;
+
+	node.cond->cond = true;
+	node.cond->label_true = label1;
+	node.cond->label_false = label2;
+	node.cond->accept(*this);
+
+	node.if_body->accept(*this);
+
+	node.code.splice(node.code.end(), node.cond->code);
+	node.code.push_back(std::make_shared<ir::Label>(label1));
+	node.code.splice(node.code.end(), node.if_body->code);
+
+	if (node.else_body)
+	{
+		label3 = new_label();
+		node.else_body->accept(*this);
+		node.code.push_back(std::make_shared<ir::Goto>(label3));
+	}
+
+	node.code.push_back(std::make_shared<ir::Label>(label2));
+
+	if (node.else_body)
+	{
+		node.code.splice(node.code.end(), node.else_body->code);
+		node.code.push_back(std::make_shared<ir::Label>(label3));
+	}
+}
+
 void InterCodeGenVisitor::visit(Identifier & node)
 {
 	if (node.place.empty()) return;
-	std::string var = "v" + std::to_string(node.sym_info.var_no);
 	node.code.push_back(std::make_shared<ir::Assign>(node.place, 
-			std::make_shared<ir::Variable>(var)));
+			std::make_shared<ir::Variable>(node.sym_info.ir_name)));
 }
 
 void InterCodeGenVisitor::visit(Integer & node)
@@ -89,12 +121,12 @@ void InterCodeGenVisitor::visit(Assign & node)
 	auto id = std::dynamic_pointer_cast<Identifier>(node.lhs);
 	if (id) 
 	{
-		std::string idname = "v" + std::to_string(id->sym_info.var_no);
+		const auto &id_name = id->sym_info.ir_name;
 		node.code.push_back(std::make_shared<ir::Assign>(
-				ir::Variable(idname), std::make_shared<ir::Variable>(t1)));
+				id_name, std::make_shared<ir::Variable>(t1)));
 		if (!node.place.empty()) {
 			node.code.push_back(std::make_shared<ir::Assign>(
-					node.place, std::make_shared<ir::Variable>(idname)));
+					node.place, std::make_shared<ir::Variable>(id_name)));
 		}
 	}
 	else assert(0);
@@ -165,4 +197,24 @@ void InterCodeGenVisitor::visit(FunCall & node)
 					std::make_shared<ir::Variable>(t1)));
 	}
 	else assert(0);
+}
+
+void InterCodeGenVisitor::translate_cond(Relop &node)
+{
+	auto t1 = new_temp();
+	auto t2 = new_temp();
+
+	node.lhs->place = t1;
+	node.lhs->accept(*this);
+	node.rhs->place = t2;
+	node.rhs->accept(*this);
+
+	node.code.splice(node.code.end(), node.lhs->code);
+	node.code.splice(node.code.end(), node.rhs->code);
+	node.code.push_back(std::make_shared<ir::CGoto>(
+				std::make_shared<ir::Variable>(t1),
+				std::make_shared<ir::Variable>(t2),
+				node.op,
+				node.label_true));
+	node.code.push_back(std::make_shared<ir::Goto>(node.label_false));
 }

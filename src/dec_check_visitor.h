@@ -23,7 +23,7 @@ struct DecCheckVisitor : public Visitor
 
 	void visit(CompSt &node);
 	void visit(Return &node);
-	void visit(Branch &node) { assert(0); }
+	void visit(Branch &node);
 	void visit(While &node) { assert(0); }
 
 	void visit(Plus &node) { visit_bop(node); }

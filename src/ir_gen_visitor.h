@@ -24,7 +24,7 @@ struct InterCodeGenVisitor : public Visitor
 
 	void visit(CompSt &node);
 	void visit(Return &node);
-	void visit(Branch &node) { assert(0); }
+	void visit(Branch &node);
 	void visit(While &node) { assert(0); }
 
 	void visit(Plus &node);
@@ -35,7 +35,7 @@ struct InterCodeGenVisitor : public Visitor
 	void visit(And &node) { assert(0); }
 	void visit(Or &node) { assert(0); }
 	void visit(Not &node) { assert(0); }
-	void visit(Relop &node) { assert(0); }
+	void visit(Relop &node) { translate_cond(node); }
 	void visit(Subscript &node) { assert(0); }
 	void visit(MemberAccess &node) { assert(0); }
 	void visit(Assign &node);
@@ -49,5 +49,13 @@ private:
 	void visit_arith(Arith &node);
 
 	ir::Variable new_temp();
+	int new_label() { return ++label_no; }
+
+	void translate_cond(Relop &node);
+//	void visit(Expression &node) { 
+//		node.cond ? translate_cond(node) : translate_exp(node);
+//	}
+
 	int temp_no = 0;
+	int label_no = 0;
 };

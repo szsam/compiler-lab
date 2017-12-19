@@ -6,16 +6,20 @@
 #include <list>
 
 #include "Type.h"
+#include "ir.h"
 // struct Type;
 struct SymbolInfo
 {
 	std::shared_ptr<Type> type;
 	// variable number, used in intermediate code
-	int var_no;
+	// int var_no;
+	// variable name used in intermediate code
+	ir::Variable ir_name;
 
-	SymbolInfo() : type(), var_no(-1) {}
-	SymbolInfo(std::shared_ptr<Type> t) : type(t), var_no(-1) {}
-	SymbolInfo(std::shared_ptr<Type> t, int no) : type(t), var_no(no) {}
+	SymbolInfo() = default;
+	SymbolInfo(std::shared_ptr<Type> t) : type(t) {}
+	SymbolInfo(std::shared_ptr<Type> t, const ir::Variable &var) 
+		: type(t), ir_name(var) {}
 };
 
 class SymbolTable
@@ -36,7 +40,8 @@ public:
 		if (type->is_basic()) 
 		{
 			++variable_no;
-			sym.var_no = variable_no;
+			// sym.var_no = variable_no;
+			sym.ir_name = ir::Variable("v" + std::to_string(variable_no));
 		}
 		return tables.back().insert({name, sym}).second;
 	}

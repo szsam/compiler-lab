@@ -48,7 +48,7 @@ $(YHFILE) $(YCFILE): $(YFILE)
 .PHONY: clean
 
 clean:
-	$(RM) -r $(BUILD_DIR) $(LCFILE) $(YCFILE) $(YHFILE)
+	$(RM) -r $(BUILD_DIR) $(LCFILE) $(YCFILE) $(YHFILE) $(SRC_DIRS)/*.output
 
 -include $(DEPS)
 

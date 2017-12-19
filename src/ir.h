@@ -135,7 +135,7 @@ struct CGoto : public InterCode
 	std::string relop;
 	int lbl;
 
-	CGoto(std::shared_ptr<Operand> x, const std::string &op, std::shared_ptr<Operand> y, int l) :
+	CGoto(std::shared_ptr<Operand> x, std::shared_ptr<Operand> y, const std::string &op, int l) :
 		lhs(x), rhs(y), relop(op), lbl(l) {}
 	std::ostream& output(std::ostream &out) const override
 	{

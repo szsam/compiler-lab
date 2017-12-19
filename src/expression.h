@@ -7,7 +7,12 @@
 struct Expression : public Statement
 {
 	// SP<Type> type;
+	// used when translated as ordinary expression
 	ir::Variable place;
+	// is translated as conditional expression
+	bool cond;	
+	// used when translated as conditional expression
+	int label_true, label_false;
 	// DEFINE_ACCEPT
 };
 
@@ -80,10 +85,10 @@ struct Arith : public BinaryOp
 
 struct Relop : public BinaryOp
 {
-	std::string str;
+	std::string op;
 
 	Relop(SP<Expression> l, SP<Expression> r, const std::string &s) : 
-		BinaryOp(l, r) ,str(s) {}
+		BinaryOp(l, r) ,op(s) {}
 	DEFINE_ACCEPT
 };
 
