@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Type.h"
+#include "expression.h"
+
 typedef enum GrammarSymbol {
 	eFIRST_TERMINAL,
 	eINT = eFIRST_TERMINAL, eFLOAT, eID, eTYPE, eRELOP,
@@ -21,12 +24,42 @@ typedef enum GrammarSymbol {
 
 typedef struct ParseTreeNode {
 	enum GrammarSymbol node_type;
-	union {
+	// union {
 		int int_value;
 		float float_value;
-		char *string_value;
-	}value;
+		std::string string_value;
+		
+		SP<ExtDef> ext_def;
+		PVP<ExtDef> ext_def_list;
+		SP<VarDec> var_dec;
+		SP<VEC<VarDec>> var_dec_list;
+		Param param_dec;
+		SP<VEC<Param>> var_list;
+		SP<FunDec> fun_dec;
+
+		SP<Specifier> specifier;
+		SP<StructSpecifier> struct_specifier;
+
+		SP<Statement> stmt;
+		SP<CompSt> comp_st;
+		PVP<Statement> stmt_list;
+
+		SP<Dec> dec;
+		SP<VEC<Dec>> dec_list;
+		SP<Def> def;
+		SP<VEC<Def>> def_list;
+
+		SP<Expression> exp;
+		// SP<FunCall> fun_call;
+		PVP<Expression> args;
+	// };
 	int loc;	// line number 
+
+	// used in semantic analysis
+	// std::string id;
+	std::shared_ptr<Type> type;
+	bool has_lvalue;
+
 	struct ParseTreeNode *prev, *next, *child;
 }ParseTreeNode;
 

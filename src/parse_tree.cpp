@@ -42,11 +42,11 @@ void print_parse_tree_node(ParseTreeNode * node) {
 		printf(" (%d)", node->loc);
 	}
     else if(node_type == eID || node_type == eTYPE)
-        printf(": %s", node->value.string_value);
+        printf(": %s", node->string_value.c_str());
     else if(node_type == eINT)
-        printf(": %d", node->value.int_value);
+        printf(": %d", node->int_value);
     else if(node_type == eFLOAT)
-        printf(": %f", node->value.float_value);
+        printf(": %f", node->float_value);
     printf("\n");
 }
 
@@ -69,10 +69,10 @@ void print_parse_tree(ParseTreeNode *root, int indent_level) {
 }
 
 void delete_parse_tree_node(ParseTreeNode * node) {
-    int node_type = node->node_type;
-    if(node_type == eID || node_type == eTYPE 
-        || node_type == eRELOP)
-        free(node->value.string_value);
+//    int node_type = node->node_type;
+//    if(node_type == eID || node_type == eTYPE 
+//        || node_type == eRELOP)
+//        free(node->string_value);
     free(node);
 }
 
@@ -93,6 +93,7 @@ ParseTreeNode *create_terminal_node(GrammarSymbol node_type) {
 	ret->node_type = node_type;
 	ret->prev = ret->next = ret->child = NULL;
 	ret->loc = yylineno;
+	ret->has_lvalue = false;
 	return ret;
 }
 
@@ -121,6 +122,7 @@ ParseTreeNode *create_nonterminal_node(GrammarSymbol node_type, int argc, ...) {
     ret->node_type = node_type;
     ret->prev = ret->next = NULL;
     ret->child = head;
+	ret->has_lvalue = false;
 
 	if (ret->child) {
 		ret->loc = head->loc;

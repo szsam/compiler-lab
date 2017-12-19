@@ -47,31 +47,31 @@ multi_line_comment "/*"([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*+\/
 
 {decimal} { 
 	yylval = create_terminal_node(eINT);
-	yylval->value.int_value = atoi(yytext);
+	yylval->int_value = atoi(yytext);
 	return INT; 
 }
 
 {oct} { 
 	yylval = create_terminal_node(eINT);
-	yylval->value.int_value = strtol(yytext, NULL, 8);
+	yylval->int_value = strtol(yytext, NULL, 8);
 	return INT; 
 }
 
 {hex} { 
 	yylval = create_terminal_node(eINT);
-	yylval->value.int_value = strtol(yytext, NULL, 16);
+	yylval->int_value = strtol(yytext, NULL, 16);
 	return INT; 
 }
 
 {decimal_float} { 
 	yylval = create_terminal_node(eFLOAT);
-	yylval->value.float_value = strtof(yytext, NULL);
+	yylval->float_value = strtof(yytext, NULL);
 	return FLOAT; 
 }
 
 {scientific_notation} { 
 	yylval = create_terminal_node(eFLOAT);
-	yylval->value.float_value = strtof(yytext, NULL);
+	yylval->float_value = strtof(yytext, NULL);
 	return FLOAT; 
 }
 
@@ -83,13 +83,13 @@ while   { yylval = create_terminal_node(eWHILE); return WHILE;	 }
 
 int|float { 
 	yylval = create_terminal_node(eTYPE);
-	yylval->value.string_value = strdup(yytext);
+	yylval->string_value = yytext;
 	return TYPE; 
 }
 
 {letter}({letter}|{digit})*	{ 
 	yylval = create_terminal_node(eID);
-	yylval->value.string_value = strdup(yytext);
+	yylval->string_value = yytext;
 	return ID;
 }
 
@@ -99,7 +99,7 @@ int|float {
 
 >|<|>=|<=|==|!=	{ 
 	yylval = create_terminal_node(eRELOP);
-	yylval->value.string_value = strdup(yytext);
+	yylval->string_value = yytext;
 	return RELOP;	
 }
 

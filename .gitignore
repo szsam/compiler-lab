@@ -1,4 +1,7 @@
-syntax.tab*
-syntax.output
-lex.yy.c
-parser
+build/
+src/lexical.cpp
+src/*.tab*
+src/*.output
+*.txt
+*.ir
+*.pyc
