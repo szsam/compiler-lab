@@ -5,3 +5,6 @@ src/*.output
 *.txt
 *.ir
 *.pyc
+.ycm_extra_conf.py
+!pretest*/*
+
