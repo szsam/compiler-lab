@@ -100,21 +100,23 @@ void InterCodeGenVisitor::visit(Branch &node)
 	}
 }
 
-void InterCodeGenVisitor::visit(Identifier & node)
+/* translate expression */
+
+void InterCodeGenVisitor::translate_exp(Identifier & node)
 {
 	if (node.place.empty()) return;
 	node.code.push_back(std::make_shared<ir::Assign>(node.place, 
 			std::make_shared<ir::Variable>(node.sym_info.ir_name)));
 }
 
-void InterCodeGenVisitor::visit(Integer & node)
+void InterCodeGenVisitor::translate_exp(Integer & node)
 {
 	if (node.place.empty()) return;
 	node.code.push_back(std::make_shared<ir::Assign>(node.place, 
 			std::make_shared<ir::Constant>(node.value)));
 }
 
-void InterCodeGenVisitor::visit(Assign & node)
+void InterCodeGenVisitor::translate_exp(Assign & node)
 {
 	auto t1 = new_temp();
 	node.rhs->place = t1;
@@ -135,7 +137,7 @@ void InterCodeGenVisitor::visit(Assign & node)
 	else assert(0);
 }
 
-void InterCodeGenVisitor::visit(Negative & node)
+void InterCodeGenVisitor::translate_exp(Negative & node)
 {
 	auto t1 = new_temp();	
 	node.rhs->place = t1;
@@ -150,8 +152,9 @@ void InterCodeGenVisitor::visit(Negative & node)
 	}
 }
 
+// translate exp for +,-,*,/
 template <typename T>
-void InterCodeGenVisitor::visit_arith(Arith & node)
+void InterCodeGenVisitor::translate_exp_arith(BinaryOp & node)
 {
 	auto t1 = new_temp();
 	auto t2 = new_temp();
@@ -171,20 +174,20 @@ void InterCodeGenVisitor::visit_arith(Arith & node)
 	}
 }
 
-void InterCodeGenVisitor::visit(Plus & node)
-{ visit_arith<ir::Plus>(node); }
+void InterCodeGenVisitor::translate_exp(Plus & node)
+{ translate_exp_arith<ir::Plus>(node); }
 
-void InterCodeGenVisitor::visit(Minus & node)
-{ visit_arith<ir::Minus>(node); }
+void InterCodeGenVisitor::translate_exp(Minus & node)
+{ translate_exp_arith<ir::Minus>(node); }
 
-void InterCodeGenVisitor::visit(Multiply & node)
-{ visit_arith<ir::Multiply>(node); }
+void InterCodeGenVisitor::translate_exp(Multiply & node)
+{ translate_exp_arith<ir::Multiply>(node); }
 
-void InterCodeGenVisitor::visit(Divide & node)
-{ visit_arith<ir::Divide>(node); }
+void InterCodeGenVisitor::translate_exp(Divide & node)
+{ translate_exp_arith<ir::Divide>(node); }
 
 
-void InterCodeGenVisitor::visit(FunCall & node)
+void InterCodeGenVisitor::translate_exp(FunCall & node)
 {
 	if (node.name == "read")
 	{
@@ -220,6 +223,36 @@ void InterCodeGenVisitor::visit(FunCall & node)
 	}
 }
 
+template <typename T>
+void InterCodeGenVisitor::translate_exp_logic(T &node)
+{
+	int label1 = new_label();
+	int label2 = new_label();
+
+	node.label_true = label1;
+	node.label_false = label2;
+
+	translate_cond(node);	// code1
+	
+	if (!node.place.empty()) 
+	{
+		// code0
+		node.code.push_front(std::make_shared<ir::Assign>(node.place, 
+				std::make_shared<ir::Constant>(0)));
+	}
+
+	node.code.push_back(std::make_shared<ir::Label>(label1));
+
+	if (!node.place.empty()) 
+	{
+		node.code.push_back(std::make_shared<ir::Assign>(node.place, 
+				std::make_shared<ir::Constant>(1)));
+	}
+
+	node.code.push_back(std::make_shared<ir::Label>(label2));
+}
+
+/* translate condition */
 void InterCodeGenVisitor::translate_cond(Relop &node)
 {
 	auto t1 = new_temp();
@@ -236,6 +269,67 @@ void InterCodeGenVisitor::translate_cond(Relop &node)
 				std::make_shared<ir::Variable>(t1),
 				std::make_shared<ir::Variable>(t2),
 				node.op,
+				node.label_true));
+	node.code.push_back(std::make_shared<ir::Goto>(node.label_false));
+}
+
+void InterCodeGenVisitor::translate_cond(Not &node) 
+{
+	node.rhs->cond = true;
+	node.rhs->label_true = node.label_false;
+	node.rhs->label_false = node.label_true;
+
+	node.rhs->accept(*this);
+	node.code.splice(node.code.end(), node.rhs->code);
+}
+
+void InterCodeGenVisitor::translate_cond(And &node) 
+{
+	int label1 = new_label();
+	node.lhs->cond = true;
+	node.lhs->label_true = label1;
+	node.lhs->label_false = node.label_false;
+	node.lhs->accept(*this);
+
+	node.rhs->cond = true;
+	node.rhs->label_true = node.label_true;
+	node.rhs->label_false = node.label_false;
+	node.rhs->accept(*this);
+
+	node.code.splice(node.code.end(), node.lhs->code);
+	node.code.push_back(std::make_shared<ir::Label>(label1));
+	node.code.splice(node.code.end(), node.rhs->code);
+}
+
+void InterCodeGenVisitor::translate_cond(Or &node) 
+{
+	int label1 = new_label();
+	node.lhs->cond = true;
+	node.lhs->label_true = node.label_true;
+	node.lhs->label_false = label1;
+	node.lhs->accept(*this);
+
+	node.rhs->cond = true;
+	node.rhs->label_true = node.label_true;
+	node.rhs->label_false = node.label_false;
+	node.rhs->accept(*this);
+
+	node.code.splice(node.code.end(), node.lhs->code);
+	node.code.push_back(std::make_shared<ir::Label>(label1));
+	node.code.splice(node.code.end(), node.rhs->code);
+}
+
+template <typename T>
+void InterCodeGenVisitor::translate_cond_others(T &node)
+{
+	auto t1 = new_temp();
+	node.place = t1;
+	translate_exp(node);
+
+	node.code.push_back(std::make_shared<ir::CGoto>(
+				std::make_shared<ir::Variable>(t1),
+				std::make_shared<ir::Constant>(0),
+				"!=",
 				node.label_true));
 	node.code.push_back(std::make_shared<ir::Goto>(node.label_false));
 }

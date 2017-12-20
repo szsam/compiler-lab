@@ -16,7 +16,7 @@ struct Expression : public Statement
 	// DEFINE_ACCEPT
 };
 
-struct BinaryOp : public Expression
+struct BinaryOp : public virtual Expression
 {
 	SP<Expression> lhs;
 	SP<Expression> rhs;
@@ -25,11 +25,88 @@ struct BinaryOp : public Expression
 		lhs(l), rhs(r) {}
 };
 
-struct UnaryOp : public Expression
+struct UnaryOp : public virtual Expression
 {
 	SP<Expression> rhs;
 
 	UnaryOp(SP<Expression> r) : rhs(r) {}
+};
+
+struct Logic : public virtual Expression
+{
+};
+
+struct Arith : public virtual Expression
+{
+};
+
+struct Assign : public BinaryOp
+{
+	Assign(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
+	DEFINE_ACCEPT
+};
+
+struct Subscript : public BinaryOp
+{
+	Subscript(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
+	DEFINE_ACCEPT
+};
+
+struct Not : public UnaryOp, public Logic
+{
+	Not(SP<Expression> r) : UnaryOp(r) {}
+	DEFINE_ACCEPT
+};
+
+struct And : public BinaryOp, public Logic
+{
+	And(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
+	DEFINE_ACCEPT
+};
+
+struct Or : public BinaryOp, public Logic
+{
+	Or(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
+	DEFINE_ACCEPT
+};
+
+struct Relop : public BinaryOp, public Logic
+{
+	std::string op;
+
+	Relop(SP<Expression> l, SP<Expression> r, const std::string &s) : 
+		BinaryOp(l, r) ,op(s) {}
+	DEFINE_ACCEPT
+};
+
+struct Plus : public BinaryOp, public Arith
+{
+	Plus(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
+	DEFINE_ACCEPT
+};
+
+struct Minus : public BinaryOp, public Arith
+{
+	Minus(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
+	DEFINE_ACCEPT
+};
+
+struct Multiply : public BinaryOp, public Arith
+{
+	Multiply(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
+	DEFINE_ACCEPT
+};
+
+struct Divide : public BinaryOp, public Arith
+{
+	Divide(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
+	DEFINE_ACCEPT
+};
+
+struct Negative : public UnaryOp, public Arith
+{
+	Negative(SP<Expression> r) : UnaryOp(r) {}
+	DEFINE_ACCEPT
 };
 
 struct FunCall : public Expression
@@ -39,6 +116,16 @@ struct FunCall : public Expression
 
 	FunCall(const std::string &n, const VEC<SP<Expression>> &a = VEC<SP<Expression>>()) :
 		name(n), args(a) {}
+	DEFINE_ACCEPT
+};
+
+struct MemberAccess : public Expression
+{
+	SP<Expression> object;
+	std::string member;
+
+	MemberAccess(SP<Expression> exp, const std::string &str) 
+		: object(exp), member(str) {}
 	DEFINE_ACCEPT
 };
 
@@ -67,87 +154,3 @@ struct Float : public Expression
 	DEFINE_ACCEPT
 };
 
-struct Assign : public BinaryOp
-{
-	Assign(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
-	DEFINE_ACCEPT
-};
-
-struct Logic : public BinaryOp
-{
-	Logic(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
-};
-
-struct Arith : public BinaryOp
-{
-	Arith(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
-};
-
-struct Relop : public BinaryOp
-{
-	std::string op;
-
-	Relop(SP<Expression> l, SP<Expression> r, const std::string &s) : 
-		BinaryOp(l, r) ,op(s) {}
-	DEFINE_ACCEPT
-};
-
-struct Subscript : public BinaryOp
-{
-	Subscript(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
-	DEFINE_ACCEPT
-};
-
-struct MemberAccess : public BinaryOp
-{
-	MemberAccess(SP<Expression> l, SP<Expression> r) : BinaryOp(l, r) {}
-	DEFINE_ACCEPT
-};
-
-struct Negative : public UnaryOp
-{
-	Negative(SP<Expression> r) : UnaryOp(r) {}
-	DEFINE_ACCEPT
-};
-
-struct Not : public UnaryOp
-{
-	Not(SP<Expression> r) : UnaryOp(r) {}
-	DEFINE_ACCEPT
-};
-
-struct And : public Logic
-{
-	And(SP<Expression> l, SP<Expression> r) : Logic(l, r) {}
-	DEFINE_ACCEPT
-};
-
-struct Or : public Logic
-{
-	Or(SP<Expression> l, SP<Expression> r) : Logic(l, r) {}
-	DEFINE_ACCEPT
-};
-
-struct Plus : public Arith
-{
-	Plus(SP<Expression> l, SP<Expression> r) : Arith(l, r) {}
-	DEFINE_ACCEPT
-};
-
-struct Minus : public Arith
-{
-	Minus(SP<Expression> l, SP<Expression> r) : Arith(l, r) {}
-	DEFINE_ACCEPT
-};
-
-struct Multiply : public Arith
-{
-	Multiply(SP<Expression> l, SP<Expression> r) : Arith(l, r) {}
-	DEFINE_ACCEPT
-};
-
-struct Divide : public Arith
-{
-	Divide(SP<Expression> l, SP<Expression> r) : Arith(l, r) {}
-	DEFINE_ACCEPT
-};

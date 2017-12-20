@@ -296,7 +296,7 @@ Exp	: Exp ASSIGNOP Exp	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3);
 					  $$->exp = std::make_shared<Subscript>($1->exp, $3->exp);
 					}
 	| Exp DOT ID	{ $$ = create_nonterminal_node(eExp, 3, $1, $2, $3); 
-					  $$->exp = std::make_shared<MemberAccess>($1->exp, $3->exp);
+					  $$->exp = std::make_shared<MemberAccess>($1->exp, $3->string_value);
 					}
 	| ID			{ $$ = create_nonterminal_node(eExp, 1, $1); 
 					  $$->exp = std::make_shared<Identifier>($1->string_value);
