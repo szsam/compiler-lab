@@ -100,6 +100,27 @@ void InterCodeGenVisitor::visit(Branch &node)
 	}
 }
 
+void InterCodeGenVisitor::visit(While &node)
+{
+	int label1 = new_label();
+	int label2 = new_label();
+	int label3 = new_label();
+
+	node.cond->cond = true;
+	node.cond->label_true = label2;
+	node.cond->label_false = label3;
+	node.cond->accept(*this);
+
+	node.body->accept(*this);
+
+	node.code.push_back(std::make_shared<ir::Label>(label1));
+	node.code.splice(node.code.end(), node.cond->code);
+	node.code.push_back(std::make_shared<ir::Label>(label2));
+	node.code.splice(node.code.end(), node.body->code);
+	node.code.push_back(std::make_shared<ir::Goto>(label1));
+	node.code.push_back(std::make_shared<ir::Label>(label3));
+}
+
 /* translate expression */
 
 void InterCodeGenVisitor::translate_exp(Identifier & node)

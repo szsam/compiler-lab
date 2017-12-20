@@ -95,6 +95,11 @@ void DecCheckVisitor::visit(Branch & node)
 		node.else_body->accept(*this);
 }
 
+void DecCheckVisitor::visit(While & node)
+{
+	node.cond->accept(*this);
+	node.body->accept(*this);
+}
 
 void DecCheckVisitor::visit_bop(BinaryOp & node)
 {
