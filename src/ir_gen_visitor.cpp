@@ -29,8 +29,13 @@ void InterCodeGenVisitor::visit(FunDec & node)
 {
 	node.code.push_back(std::make_shared<ir::Function>(node.name));
 
-	for (const auto &param : node.ir_params)
-		node.code.push_back(std::make_shared<ir::Param>(param));
+//	for (const auto &param : node.ir_params)
+//		node.code.push_back(std::make_shared<ir::Param>(param));
+	for (auto it = node.params.rbegin(); it != node.params.rend(); ++it)
+	{
+		node.code.push_back(std::make_shared<ir::Param>(
+					it->second->sym_info.ir_name));
+	}
 
 	node.body->accept(*this);
 	node.code.splice(node.code.end(), node.body->code);
@@ -48,6 +53,24 @@ void InterCodeGenVisitor::visit(StructSpecifier & node)
 
 void InterCodeGenVisitor::visit(CompSt & node)
 {
+	// traverse def_list
+	for (auto it_def = node.def_list.rbegin(); 
+			it_def != node.def_list.rend(); ++it_def)
+	{
+		for (auto it_dec = it_def->dec_list.rbegin();
+					it_dec != it_def->dec_list.rend(); ++it_dec)
+		{
+			auto t1 = new_temp();
+			it_dec->initial->place = t1;
+			it_dec->initial->accept(*this);
+			node.code.splice(node.code.end(), it_dec->initial->code);
+			node.code.push_back(std::make_shared<ir::Assign>(
+					it_dec->var_dec.sym_info.ir_name,	
+					std::make_shared<ir::Variable>(t1)));
+		}
+
+	}
+
 	// traverse statement list
 	for (auto it_stmt = node.stmt_list.rbegin();
 			it_stmt != node.stmt_list.rend(); ++it_stmt)

@@ -29,10 +29,11 @@ void DecCheckVisitor::visit(FunDec & node)
 	{
 		it->first->accept(*this);
 		assert(it->second->indices.empty());
-		auto v1 = new_var();
-		table.put(it->second->id, SymbolInfo(it->first->type, v1));
-		const auto &ir_name = table.get(it->second->id)->ir_name;
-		node.ir_params.push_back(ir_name);
+		SymbolInfo sym_info(it->first->type, new_var());
+		table.put(it->second->id, sym_info);
+		it->second->sym_info = sym_info;
+		// const auto &ir_name = table.get(it->second->id)->ir_name;
+		// node.ir_params.push_back(ir_name);
 	}
 	node.body->accept(*this);
 	table.exit_scope();
@@ -63,11 +64,13 @@ void DecCheckVisitor::visit(CompSt & node)
 		for (auto it_dec = it_def->dec_list.rbegin();
 					it_dec != it_def->dec_list.rend(); ++it_dec)
 		{
-			// it_dec->initial
+			it_dec->initial->accept(*this);
 			if (it_dec->var_dec.indices.empty())
 			{
 				const auto &id = it_dec->var_dec.id;
-				bool ret = table.put(id, SymbolInfo(base_type, new_var()));
+				SymbolInfo sym_info(base_type, new_var());
+				bool ret = table.put(id, sym_info);
+				it_dec->var_dec.sym_info = sym_info;
 				assert(ret);
 			}
 			else assert(0);

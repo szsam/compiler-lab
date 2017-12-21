@@ -18,6 +18,7 @@ using PVP = SP<VEC<SP<T>>>;
 #include "visitor.h"
 #include "Type.h"
 #include "ir.h"
+#include "symbol_table.h"
 
 #define DEFINE_ACCEPT void accept(Visitor &visitor) override { visitor.visit(*this); }
 
@@ -53,6 +54,7 @@ struct VarDec
 {
 	std::string id;
 	VEC<int> indices;
+	SymbolInfo sym_info;
 
 	VarDec(const std::string &s) : id(s) {}
 };
@@ -92,7 +94,7 @@ struct FunDec : public ExtDef
 	VEC<Param>  params;
 	SP<Specifier> ret_type;
 	SP<CompSt> body;
-	VEC<ir::Variable> ir_params;  // parameters' name in IR
+	// VEC<ir::Variable> ir_params;  // parameters' name in IR
 
 	FunDec(const std::string &n, const VEC<Param> &p = VEC<Param>()) :
 		name(n), params(p) {}
