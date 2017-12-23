@@ -294,6 +294,7 @@ void InterCodeGenVisitor::translate_exp(FunCall & node)
 			node.code.push_back(std::make_shared<ir::Arg>(
 					std::make_shared<ir::Variable>(arg)));
 		}
+		if (node.place.empty()) node.place = new_temp();
 		node.code.push_back(std::make_shared<ir::FunCall>(
 					node.name, node.place));
 	}
