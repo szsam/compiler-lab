@@ -1,5 +1,5 @@
 #!/bin/bash
-testcase_dir=pretest
+testcase_dir=pretest2
 
 files=$(ls $testcase_dir | grep -E '[0-9]+\.txt' | sort -g)
 

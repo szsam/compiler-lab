@@ -6,7 +6,13 @@
 
 struct Expression : public Statement
 {
-	// SP<Type> type;
+	// type of expression
+	SP<Type> type;
+	// the expression is required to be an lvalue
+	bool require_lvalue = false;
+	// the expression is an lvalue
+	bool is_lvalue = false;
+
 	// used when translated as ordinary expression
 	ir::Variable place;
 	// is translated as conditional expression

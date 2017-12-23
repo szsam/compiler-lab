@@ -15,6 +15,7 @@ using namespace std;
 extern SP<Program> ast_root;
 
 #include "dec_check_visitor.h"
+#include "type_check_visitor.h"
 #include "ir_gen_visitor.h"
 
 #include <fstream>
@@ -43,6 +44,9 @@ int main(int argc, char** argv)
 
 	DecCheckVisitor dec_checker;
 	ast_root->accept(dec_checker);
+
+	TypeCheckVisitor type_checker;
+	ast_root->accept(type_checker);
 
 	InterCodeGenVisitor inter_code_gen;
 	ast_root->accept(inter_code_gen);

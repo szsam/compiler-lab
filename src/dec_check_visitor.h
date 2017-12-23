@@ -36,7 +36,7 @@ struct DecCheckVisitor : public Visitor
 	void visit(Or &node) { visit_bop(node); }
 	void visit(Not &node) { node.rhs->accept(*this); }
 	void visit(Relop &node) { visit_bop(node); }
-	void visit(Subscript &node) { assert(0); }
+	void visit(Subscript &node) { visit_bop(node); }
 	void visit(MemberAccess &node) { assert(0); }
 	void visit(Assign &node) { visit_bop(node); }
 	void visit(FunCall &node);

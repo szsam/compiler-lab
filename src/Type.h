@@ -17,6 +17,7 @@ struct Type
 	virtual std::string to_string() const = 0;
 	virtual bool is_basic() const { return false; };
 	virtual bool is_integer() const { return false; };
+	virtual bool is_array() const { return false; };
 
 	// number of bytes needed for objects of this type
 	int width;
@@ -95,6 +96,8 @@ struct Array : public Type
 	std::shared_ptr<Type> elem;
 
 	Array(int s, std::shared_ptr<Type> e) : Type(s * e->width), size(s), elem(e) { }
+
+	bool is_array() const override { return true; };
 
 	bool equal(const Type &rhs) const override
 	{
