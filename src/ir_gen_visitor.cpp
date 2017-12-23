@@ -60,15 +60,29 @@ void InterCodeGenVisitor::visit(CompSt & node)
 		for (auto it_dec = it_def->dec_list.rbegin();
 					it_dec != it_def->dec_list.rend(); ++it_dec)
 		{
-			if (!it_dec->initial) continue;
+			if (it_dec->initial)
+			{
+				auto t1 = new_temp();
+				it_dec->initial->place = t1;
+				it_dec->initial->accept(*this);
+				node.code.splice(node.code.end(), it_dec->initial->code);
+				node.code.push_back(std::make_shared<ir::Assign>(
+						it_dec->var_dec.sym_info.ir_name,	
+						std::make_shared<ir::Variable>(t1)));
+			}
 
-			auto t1 = new_temp();
-			it_dec->initial->place = t1;
-			it_dec->initial->accept(*this);
-			node.code.splice(node.code.end(), it_dec->initial->code);
-			node.code.push_back(std::make_shared<ir::Assign>(
-					it_dec->var_dec.sym_info.ir_name,	
-					std::make_shared<ir::Variable>(t1)));
+			// array or structure
+			auto type = it_dec->var_dec.sym_info.type;
+			if (!type->is_basic())
+			{
+				auto t1 = new_temp();
+				node.code.push_back(std::make_shared<ir::Declare>(
+						t1,	type->width));
+				node.code.push_back(std::make_shared<ir::Assign>(
+						it_dec->var_dec.sym_info.ir_name,
+						std::make_shared<ir::Variable>(t1, ir::Variable::ADDR)));
+			}
+
 		}
 
 	}
@@ -164,13 +178,14 @@ void InterCodeGenVisitor::translate_exp(Integer & node)
 
 void InterCodeGenVisitor::translate_exp(Assign & node)
 {
+	assert(node.type->is_integer());
+
 	auto t1 = new_temp();
 	node.rhs->place = t1;
 	node.rhs->accept(*this);
 	node.code.splice(node.code.end(), node.rhs->code);
 
-	auto id = std::dynamic_pointer_cast<Identifier>(node.lhs);
-	if (id) 
+	if (auto id = std::dynamic_pointer_cast<Identifier>(node.lhs)) 
 	{
 		const auto &id_name = id->sym_info.ir_name;
 		node.code.push_back(std::make_shared<ir::Assign>(
@@ -178,6 +193,21 @@ void InterCodeGenVisitor::translate_exp(Assign & node)
 		if (!node.place.empty()) {
 			node.code.push_back(std::make_shared<ir::Assign>(
 					node.place, std::make_shared<ir::Variable>(id_name)));
+		}
+	}
+	else if (auto subscript = std::dynamic_pointer_cast<Subscript>(node.lhs))
+	{
+		auto addr = new_temp();
+		node.lhs->place = addr;
+		node.lhs->accept(*this);
+		node.code.splice(node.code.end(), node.lhs->code);
+
+		auto star_addr = ir::Variable(addr, ir::Variable::DEREF);
+		node.code.push_back(std::make_shared<ir::Assign>(
+				star_addr, std::make_shared<ir::Variable>(t1)));
+		if (!node.place.empty()) {
+			node.code.push_back(std::make_shared<ir::Assign>(
+					node.place, std::make_shared<ir::Variable>(star_addr)));
 		}
 	}
 	else assert(0);
@@ -296,6 +326,38 @@ void InterCodeGenVisitor::translate_exp_logic(T &node)
 	}
 
 	node.code.push_back(std::make_shared<ir::Label>(label2));
+}
+
+void InterCodeGenVisitor::translate_exp(Subscript &node)
+{
+	// node.lhs->type must be an Array, after type checking
+	auto array_type = std::static_pointer_cast<Array>(node.lhs->type);
+	auto elem_width = std::make_shared<ir::Constant>(array_type->elem->width);
+
+	auto base_addr = new_temp();
+	node.lhs->place = base_addr;
+	node.lhs->accept(*this);
+	node.code.splice(node.code.end(), node.lhs->code);
+
+	auto index = new_temp();
+	node.rhs->place = index;
+	node.rhs->accept(*this);
+	node.code.splice(node.code.end(), node.rhs->code);
+	
+	node.code.push_back(std::make_shared<ir::Multiply>(node.place, elem_width, 
+				std::make_shared<ir::Variable>(index)));
+	node.code.push_back(std::make_shared<ir::Plus>(node.place, 
+				std::make_shared<ir::Variable>(node.place), 
+				std::make_shared<ir::Variable>(base_addr)));
+
+
+	if (!node.require_lvalue && node.type->is_basic())
+	{
+		auto star_place = ir::Variable(node.place, ir::Variable::DEREF);
+		node.code.push_back(std::make_shared<ir::Assign>(node.place, 
+					std::make_shared<ir::Variable>(star_place)));
+	}
+
 }
 
 /* translate condition */

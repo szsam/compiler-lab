@@ -63,7 +63,7 @@ private:
 	void translate_exp(Or &node) { translate_exp_logic(node); }
 	void translate_exp(Not &node) { translate_exp_logic(node); }
 	void translate_exp(Relop &node) { translate_exp_logic(node); }
-	void translate_exp(Subscript &node) { assert(0); }
+	void translate_exp(Subscript &node);
 	void translate_exp(MemberAccess &node) { assert(0); }
 	void translate_exp(Assign &node);
 	void translate_exp(FunCall &node);

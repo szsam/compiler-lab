@@ -20,10 +20,16 @@ std::ostream &operator<<(std::ostream &os, const Operand &op) { return op.output
 struct Variable : public Operand
 {
 	std::string str;
+	enum Prefix { NIL, DEREF, ADDR };
+	Prefix prefix = NIL;
+	const char *prefix_ch[3] = {"", "*", "&"};
 
 	Variable() = default;
-	Variable(const std::string &s) : str(s) {}
-	std::ostream& output(std::ostream &out) const { return out << str; }
+	Variable(const std::string &s, Prefix p = NIL) : str(s), prefix(p) {}
+	Variable(const Variable &rhs) = default;
+	Variable(const Variable &rhs, Prefix p) : str(rhs.str), prefix(p) {}
+
+	std::ostream& output(std::ostream &out) const { return out << prefix_ch[prefix] << str; }
 	bool empty() const { return str.empty(); }
 };
 
@@ -209,6 +215,19 @@ struct FunCall : public InterCode
 	std::ostream& output(std::ostream &out) const override
 	{
 		return out << result << " := CALL " << fun_name;
+	}
+};
+
+struct Declare : public InterCode
+{
+	Variable operand;
+	int size;
+
+	Declare(const Variable &var, int sz) 
+		: operand(var), size(sz) {}
+	std::ostream& output(std::ostream &out) const override
+	{
+		return out << "DEC " << operand << " " << size;
 	}
 };
 

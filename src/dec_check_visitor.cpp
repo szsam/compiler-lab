@@ -65,9 +65,11 @@ void DecCheckVisitor::visit(FunDec & node)
 	for (auto it = node.params.rbegin(); it != node.params.rend(); ++it)
 	{
 		it->first->accept(*this);
-		assert(it->second->indices.empty());
-		SymbolInfo sym_info(it->first->type, new_var());
-		table.put(it->second->id, sym_info);
+		auto base_type = it->first->type;
+		auto type = construct_array_type(base_type, it->second->indices);
+
+		SymbolInfo sym_info(type, new_var());
+		assert(table.put(it->second->id, sym_info));
 		it->second->sym_info = sym_info;
 
 		// save type of parameters in function's symbol table entry
