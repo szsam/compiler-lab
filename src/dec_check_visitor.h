@@ -53,4 +53,7 @@ private:
 	{ 
 		return ir::Variable("v" + std::to_string(++variable_no)); 
 	}
+
+	std::shared_ptr<Type> construct_array_type(
+			std::shared_ptr<Type> base_type, const std::vector<int> &indices);
 };

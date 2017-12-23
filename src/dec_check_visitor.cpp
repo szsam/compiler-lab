@@ -5,6 +5,19 @@
 #include <cassert>
 #include <iostream>
 
+std::shared_ptr<Type> DecCheckVisitor::construct_array_type(
+	std::shared_ptr<Type> base_type, const std::vector<int> &indices)
+{
+	if (indices.empty()) return base_type;
+
+	std::shared_ptr<Type> subtype = base_type;
+	for (auto it = indices.rbegin(); it != indices.rend(); ++it)
+	{
+		subtype = std::make_shared<Array>(*it, subtype);
+	}
+	return subtype;
+}
+
 void DecCheckVisitor::visit(Program & node)
 {
 	table.enter_scope();
@@ -64,16 +77,18 @@ void DecCheckVisitor::visit(CompSt & node)
 		for (auto it_dec = it_def->dec_list.rbegin();
 					it_dec != it_def->dec_list.rend(); ++it_dec)
 		{
-			it_dec->initial->accept(*this);
-			if (it_dec->var_dec.indices.empty())
-			{
-				const auto &id = it_dec->var_dec.id;
-				SymbolInfo sym_info(base_type, new_var());
-				bool ret = table.put(id, sym_info);
-				it_dec->var_dec.sym_info = sym_info;
-				assert(ret);
-			}
-			else assert(0);
+			if (it_dec->initial)
+				it_dec->initial->accept(*this);
+
+			auto type = construct_array_type(base_type, it_dec->var_dec.indices);
+#ifdef DEBUG
+			std::cout << type->to_string() << std::endl;
+#endif
+			const auto &id = it_dec->var_dec.id;
+			SymbolInfo sym_info(type, new_var());
+			bool ret = table.put(id, sym_info);
+			it_dec->var_dec.sym_info = sym_info;
+			assert(ret);
 		}
 	}
 

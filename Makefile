@@ -24,7 +24,7 @@ DEPS := $(OBJS:.o=.d)
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -std=c++14 -g
+CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -std=c++14 -g -DDEBUG
 LDFLAGS ?= -lfl -ly
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)

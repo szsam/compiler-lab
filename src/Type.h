@@ -12,10 +12,14 @@
 
 struct Type
 {
+	Type(int w) : width(w) {}
 	virtual bool equal(const Type &rhs) const = 0;
 	virtual std::string to_string() const = 0;
 	virtual bool is_basic() const { return false; };
 	virtual bool is_integer() const { return false; };
+
+	// number of bytes needed for objects of this type
+	int width;
 };
 
 inline bool operator==(const Type &lhs, const Type &rhs)
@@ -30,7 +34,7 @@ inline bool operator!=(const Type &lhs, const Type &rhs)
 
 struct Basic : public Type
 {
-	Basic() : Type() {}
+	Basic() : Type(4) {}
 	bool is_basic() const override { return true; }
 	bool equal(const Type &rhs) const override { return true; }
 };
@@ -55,7 +59,7 @@ struct Function : public Type
 	// types of parameters
 	std::vector<std::shared_ptr<Type> > params;
 
-	Function(std::shared_ptr<Type> t) : Type(), ret_type(t) {}
+	Function(std::shared_ptr<Type> t) : Type(0), ret_type(t) {}
 
 	bool equal(const Type &rhs) const override
 	{
@@ -90,7 +94,7 @@ struct Array : public Type
 	int size;
 	std::shared_ptr<Type> elem;
 
-	Array(int s, std::shared_ptr<Type> e) : size(s), elem(e) { }
+	Array(int s, std::shared_ptr<Type> e) : Type(s * e->width), size(s), elem(e) { }
 
 	bool equal(const Type &rhs) const override
 	{
@@ -103,8 +107,7 @@ struct Array : public Type
 
 	std::string to_string() const override
 	{
-		assert(0);
-		return std::string("not implemented");
+		return "array(" + elem->to_string() + ", " + std::to_string(size) + ")";
 	}
 
 	/* return base type and dimension of array */
@@ -133,6 +136,8 @@ struct StructField
 class Structure : public Type
 {
 public:
+	Structure() = default;
+
 	bool equal(const Type &rhs) const override
 	{
 		auto r = dynamic_cast<const Structure&>(rhs);

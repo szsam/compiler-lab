@@ -60,6 +60,8 @@ void InterCodeGenVisitor::visit(CompSt & node)
 		for (auto it_dec = it_def->dec_list.rbegin();
 					it_dec != it_def->dec_list.rend(); ++it_dec)
 		{
+			if (!it_dec->initial) continue;
+
 			auto t1 = new_temp();
 			it_dec->initial->place = t1;
 			it_dec->initial->accept(*this);
