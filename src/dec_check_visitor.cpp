@@ -5,6 +5,25 @@
 #include <cassert>
 #include <iostream>
 
+DecCheckVisitor::DecCheckVisitor()
+{
+	// Add predefined functions `int read()` and `int write(int)`
+	table.enter_scope();
+
+	table.put("read", SymbolInfo(
+			std::make_shared<Function>(std::make_shared<IntegerT>()),
+			ir::Variable()));
+
+	auto fun_write = std::make_shared<Function>(std::make_shared<IntegerT>());
+	fun_write->params.push_back(std::make_shared<IntegerT>());
+	table.put("write", SymbolInfo(fun_write, ir::Variable()));
+}
+
+DecCheckVisitor::~DecCheckVisitor()
+{
+	table.exit_scope();
+}
+
 std::shared_ptr<Type> DecCheckVisitor::construct_array_type(
 	std::shared_ptr<Type> base_type, const std::vector<int> &indices)
 {
@@ -20,13 +39,11 @@ std::shared_ptr<Type> DecCheckVisitor::construct_array_type(
 
 void DecCheckVisitor::visit(Program & node)
 {
-	table.enter_scope();
 	for (auto it = node.ext_def_list.rbegin();
 			it != node.ext_def_list.rend(); ++it)
 	{
 		(*it)->accept(*this);
 	}
-	table.exit_scope();
 }
 
 void DecCheckVisitor::visit(GlobalVar & node)
@@ -36,6 +53,13 @@ void DecCheckVisitor::visit(GlobalVar & node)
 
 void DecCheckVisitor::visit(FunDec & node)
 {
+	node.ret_type->accept(*this);
+
+	auto fun_type = std::make_shared<Function>(node.ret_type->type);
+	SymbolInfo fun_info(fun_type, ir::Variable());
+	// save function's prototype in symbol table
+	assert(table.put(node.name, fun_info));
+
 	table.enter_scope();
 
 	for (auto it = node.params.rbegin(); it != node.params.rend(); ++it)
@@ -45,9 +69,11 @@ void DecCheckVisitor::visit(FunDec & node)
 		SymbolInfo sym_info(it->first->type, new_var());
 		table.put(it->second->id, sym_info);
 		it->second->sym_info = sym_info;
-		// const auto &ir_name = table.get(it->second->id)->ir_name;
-		// node.ir_params.push_back(ir_name);
+
+		// save type of parameters in function's symbol table entry
+		fun_type->params.push_back(it->first->type);
 	}
+
 	node.body->accept(*this);
 	table.exit_scope();
 }
@@ -81,10 +107,10 @@ void DecCheckVisitor::visit(CompSt & node)
 				it_dec->initial->accept(*this);
 
 			auto type = construct_array_type(base_type, it_dec->var_dec.indices);
-#ifdef DEBUG
-			std::cout << type->to_string() << std::endl;
-#endif
 			const auto &id = it_dec->var_dec.id;
+#ifdef DEBUG
+			std::cout << id << ": " << type->to_string() << std::endl;
+#endif
 			SymbolInfo sym_info(type, new_var());
 			bool ret = table.put(id, sym_info);
 			it_dec->var_dec.sym_info = sym_info;
@@ -137,6 +163,10 @@ void DecCheckVisitor::visit(Identifier & node)
 
 void DecCheckVisitor::visit(FunCall & node)
 {
+	auto psym = table.get(node.name);
+	assert(psym);
+	node.sym_info = *psym;
+
 	for (auto it = node.args.rbegin(); it != node.args.rend(); ++it)
 	{
 		(*it)->accept(*this);

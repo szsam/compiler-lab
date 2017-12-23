@@ -10,7 +10,8 @@
 
 struct DecCheckVisitor : public Visitor
 {
-	// DecCheckVisitor() : {}
+	DecCheckVisitor();
+	~DecCheckVisitor();
 
 	void visit(Program &node);
 

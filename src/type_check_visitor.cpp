@@ -56,6 +56,10 @@ void TypeCheckVisitor::visit(While & node)
 
 void TypeCheckVisitor::visit(FunCall & node)
 {
+	auto fun_type = std::dynamic_pointer_cast<Function>(node.sym_info.type);
+	if (!fun_type) assert(0);
+	node.type = fun_type->ret_type;
+
 	for (auto it = node.args.rbegin(); it != node.args.rend(); ++it)
 	{
 		(*it)->accept(*this);
@@ -155,6 +159,8 @@ void TypeCheckVisitor::visit(Assign & node)
 		assert(0);
 	}
 
-	node.lhs->require_lvalue = true;
 	if (!node.lhs->is_lvalue) assert(0);
+
+	node.lhs->require_lvalue = true;
+	node.type = node.lhs->type;
 }

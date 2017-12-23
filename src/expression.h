@@ -119,6 +119,7 @@ struct FunCall : public Expression
 {
 	std::string name;
 	VEC<SP<Expression>> args;
+	SymbolInfo sym_info;
 
 	FunCall(const std::string &n, const VEC<SP<Expression>> &a = VEC<SP<Expression>>()) :
 		name(n), args(a) {}
