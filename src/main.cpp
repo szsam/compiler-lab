@@ -1,28 +1,31 @@
-#include <stdio.h>
-#include "parse_tree.h"
+#include <cstdio>
+#include <iostream>
+#include <fstream>
+
+using namespace std;
 
 // extern FILE *yyin;
 // int yylex();
 void yyrestart (FILE *input_file  );
 #include "syntax.tab.h"
 
-extern int error_occurred;
-
-#include <iostream>
-using namespace std;
-
+#include "parse_tree.h"
 #include "declaration.h"
-extern SP<Program> ast_root;
-
 #include "dec_check_visitor.h"
 #include "type_check_visitor.h"
 #include "ir_gen_visitor.h"
 
-#include <fstream>
+extern int error_occurred;
+extern SP<Program> ast_root;
 
 int main(int argc, char** argv)
 {
-	if (argc <= 1) return 1;
+	if (argc != 3) 
+	{
+		fprintf(stderr, "Usage: %s input_file output_file\n", argv[0]);
+		return 1;
+	}
+
 	FILE* f = fopen(argv[1], "r");
 	if (!f)
 	{
@@ -32,8 +35,6 @@ int main(int argc, char** argv)
 	yyrestart(f);
 	// yydebug = 1;
 	
-	// cout << ast_root.get() << endl;	
-
 	yyparse();
 
 //	if (!error_occurred)
@@ -51,7 +52,7 @@ int main(int argc, char** argv)
 	InterCodeGenVisitor inter_code_gen;
 	ast_root->accept(inter_code_gen);
 
-	ofstream fout("a.ir");
+	ofstream fout(argv[2]);
 	for (const auto &p_code : ast_root->code)
 	{
 		fout << *p_code << endl;
