@@ -20,6 +20,7 @@ using PVP = SP<VEC<SP<T>>>;
 #include "ir.h"
 #include "symbol_table.h"
 
+#undef DEFINE_ACCEPT
 #define DEFINE_ACCEPT void accept(Visitor &visitor) override { visitor.visit(*this); }
 
 struct ASTNode

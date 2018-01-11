@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 	inter_code_gen.output(fout);
 
 	ofstream fout2("code.s");
-	CodeGenerator code_generator(inter_code_gen.inter_code);
+	ir::CodeGenerationVisitor code_generator(inter_code_gen.inter_code);
 	code_generator.generate_machine_code();
 	code_generator.output(fout2);
 
