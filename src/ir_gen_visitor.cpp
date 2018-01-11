@@ -10,13 +10,25 @@ ir::Variable InterCodeGenVisitor::new_temp()
 	return ir::Variable("t" + std::to_string(++temp_no));
 }
 
+void InterCodeGenVisitor::output(std::ostream &os) const
+{
+	for (const auto &fun_code : inter_code)
+	{
+		for (const auto &p_code : fun_code)
+			os << *p_code << std::endl;
+		os << std::endl;
+	}
+
+}
+
 void InterCodeGenVisitor::visit(Program & node)
 {
 	for (auto it = node.ext_def_list.rbegin();
 			it != node.ext_def_list.rend(); ++it)
 	{
 		(*it)->accept(*this);
-		node.code.splice(node.code.end(), (*it)->code);
+		// node.code.splice(node.code.end(), (*it)->code);
+		inter_code.push_back((*it)->code);
 	}
 }
 

@@ -44,6 +44,11 @@ struct InterCodeGenVisitor : public Visitor
 	void visit(Integer &node)		{ visit_exp(node); }
 	void visit(Float &node)			{ visit_exp(node); }
 
+	void output(std::ostream &os) const;
+
+	// intermediate-code of the program, a list of code of functions
+	std::list<std::list<std::shared_ptr<ir::InterCode>>> inter_code;
+
 private:
 	template <typename T>
 	void translate_exp_arith(BinaryOp &node);
@@ -98,4 +103,5 @@ private:
 
 	int temp_no = 0;
 	int label_no = 0;
+
 };

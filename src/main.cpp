@@ -14,6 +14,7 @@ void yyrestart (FILE *input_file  );
 #include "dec_check_visitor.h"
 #include "type_check_visitor.h"
 #include "ir_gen_visitor.h"
+#include "code_generator.h"
 
 extern int error_occurred;
 extern SP<Program> ast_root;
@@ -53,10 +54,12 @@ int main(int argc, char** argv)
 	ast_root->accept(inter_code_gen);
 
 	ofstream fout(argv[2]);
-	for (const auto &p_code : ast_root->code)
-	{
-		fout << *p_code << endl;
-	}
+	inter_code_gen.output(fout);
+
+	ofstream fout2("code.s");
+	CodeGenerator code_generator(inter_code_gen.inter_code);
+	code_generator.generate_machine_code();
+	code_generator.output(fout2);
 
 	return 0;
 }

@@ -2,6 +2,9 @@
 #include <string>
 #include <iostream>
 #include <memory>
+#include <list>
+
+#include "assembly.h"
 
 // Intermediate Representation
 namespace ir
@@ -45,6 +48,8 @@ struct Constant : public Operand
 struct InterCode
 {
 	virtual std::ostream& output(std::ostream &out) const = 0;
+	virtual std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const = 0;
 	virtual ~InterCode() = default;
 };
 
@@ -58,6 +63,8 @@ struct Label : public InterCode
 	Label(int l) : lbl(l) {}
 	std::ostream& output(std::ostream &out) const override 
 	{ return out << "LABEL label" << lbl << " :"; }
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Function : public InterCode
@@ -69,6 +76,8 @@ struct Function : public InterCode
 	{
 		return out << "FUNCTION " << name << " :";
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Assign : public InterCode
@@ -81,6 +90,8 @@ struct Assign : public InterCode
 	{
 		return out << lhs << " := " << *rhs;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct BinaryOp : public InterCode
@@ -103,24 +114,32 @@ struct Plus : public BinaryOp
 {
 	Plus(const Variable &res, std::shared_ptr<Operand> l, std::shared_ptr<Operand> r) : 
 		BinaryOp('+', res, l, r) {}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Minus : public BinaryOp
 {
 	Minus(const Variable &res, std::shared_ptr<Operand> l, std::shared_ptr<Operand> r) : 
 		BinaryOp('-', res, l, r) {}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Multiply : public BinaryOp
 {
 	Multiply(const Variable &res, std::shared_ptr<Operand> l, std::shared_ptr<Operand> r) : 
 		BinaryOp('*', res, l, r) {}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Divide : public BinaryOp
 {
 	Divide(const Variable &res, std::shared_ptr<Operand> l, std::shared_ptr<Operand> r) : 
 		BinaryOp('/', res, l, r) {}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Goto : public InterCode
@@ -132,6 +151,8 @@ struct Goto : public InterCode
 	{
 		return out << "GOTO label" << lbl;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 // Conditional jump
@@ -148,6 +169,8 @@ struct CGoto : public InterCode
 		return out << "IF " << *lhs << " " << relop << " " << *rhs 
 			<< " GOTO label" << lbl;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Return : public InterCode
@@ -159,6 +182,8 @@ struct Return : public InterCode
 	{
 		return out << "RETURN " << *operand;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Read : public InterCode
@@ -170,6 +195,8 @@ struct Read : public InterCode
 	{
 		return out << "READ " << operand;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Write : public InterCode
@@ -181,6 +208,8 @@ struct Write : public InterCode
 	{
 		return out << "WRITE " << *operand;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Param : public InterCode
@@ -192,6 +221,8 @@ struct Param : public InterCode
 	{
 		return out << "PARAM " << operand;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Arg : public InterCode
@@ -203,6 +234,8 @@ struct Arg : public InterCode
 	{
 		return out << "ARG " << *operand;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct FunCall : public InterCode
@@ -216,6 +249,8 @@ struct FunCall : public InterCode
 	{
 		return out << result << " := CALL " << fun_name;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 struct Declare : public InterCode
@@ -229,6 +264,8 @@ struct Declare : public InterCode
 	{
 		return out << "DEC " << operand << " " << size;
 	}
+	std::list<std::shared_ptr<mips32_asm::Assembly>> 
+		emit_machine_code() const override;
 };
 
 }	// namespace ir
