@@ -85,5 +85,7 @@ namespace ir
 		AsmList prologue(int frame_size);
 
 		AsmList epilogue(int frame_size);
+
+		void visit_bop(BinaryOp &code, mips32_asm::Instruction::OP, mips32_asm::Instruction::OP);
 	};
 }

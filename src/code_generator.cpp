@@ -225,15 +225,17 @@ namespace ir
 		code.assembly.push_back(access_variable(code.lhs, Instruction::SW, Register::t1));	
 	}
 	
-	void CodeGenerationVisitor::visit(Plus &code)
+	// generate code for Plus and Minus
+	void CodeGenerationVisitor::visit_bop(BinaryOp &code,
+			Instruction::OP rinstr, Instruction::OP iinstr)
 	{
 		// $t1 <- lhs
 		code.assembly.push_back(load_operand(code.lhs, Register::t1));
 
 		if (auto pconst = dynamic_pointer_cast<Constant>(code.rhs))
 		{
-			// addiu $t3, $t1, rhs
-			code.assembly.push_back(make_shared<IInstruction>(Instruction::ADDIU,
+			// addiu/subiu $t3, $t1, rhs
+			code.assembly.push_back(make_shared<IInstruction>(iinstr,
 					Register::t3, Register::t1, pconst->value));
 		}
 		else if (auto pvar = dynamic_pointer_cast<Variable>(code.rhs))
@@ -241,8 +243,8 @@ namespace ir
 			// lw $t2, rhs
 			code.assembly.push_back(access_variable(
 					*pvar, Instruction::LW, Register::t2));	
-			// addu $t3, $t1, $t2
-			code.assembly.push_back(make_shared<RInstruction>(Instruction::ADDU,
+			// addu/subu $t3, $t1, $t2
+			code.assembly.push_back(make_shared<RInstruction>(rinstr,
 					Register::t3, Register::t1, Register::t2));
 		}
 
@@ -251,9 +253,14 @@ namespace ir
 				code.result, Instruction::SW, Register::t3));	
 	}
 	
+	void CodeGenerationVisitor::visit(Plus &code)
+	{
+		visit_bop(code, Instruction::ADDU, Instruction::ADDIU);
+	}
+
 	void CodeGenerationVisitor::visit(Minus &code)
 	{
-		// very similar to Plus
+		visit_bop(code, Instruction::SUBU, Instruction::SUBIU);
 	}
 	
 	void CodeGenerationVisitor::visit(Multiply &code)
@@ -349,6 +356,35 @@ namespace ir
 	
 	void CodeGenerationVisitor::visit(FunCall &code)
 	{
+		is_leaf = false;
+		max_num_of_args = max(max_num_of_args, 1);
+
+		for (vector<shared_ptr<Operand>>::size_type i = 0;
+				i < code.args.size(); ++i)
+		{
+			if (i < 4)
+			{
+				// $a_i <- args[i]
+				code.assembly.push_back(load_operand(code.args[i], 
+						Register::Reg((int)Register::a0 + i)));
+			}
+			else
+			{
+				// $t0 <- args[i]
+				code.assembly.push_back(load_operand(code.args[i], Register::t0));
+				// sw $t0, 4*i($fp)
+				code.assembly.push_back(make_shared<MemoryInstr>(
+							Instruction::SW, Register::t0, Register::fp, 4 * i));
+			}
+		}
+
+		// jal fun
+		code.assembly.push_back(make_shared<JInstruction>(
+					Instruction::JAL, code.fun_name));
+		// result <- v0
+		code.assembly.push_back(
+				access_variable(code.result, Instruction::SW, Register::v0));
+
 	}
 	
 	void CodeGenerationVisitor::visit(Declare &code)
