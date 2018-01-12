@@ -293,23 +293,23 @@ void InterCodeGenVisitor::translate_exp(FunCall & node)
 	}
 	else
 	{
-		std::vector<ir::Variable> arg_list;
-		for (auto it = node.args.begin(); it != node.args.end(); ++it)
+		std::vector<std::shared_ptr<ir::Operand>> arg_list;
+		for (auto it = node.args.rbegin(); it != node.args.rend(); ++it)
 		{
 			auto t1 = new_temp();
 			(*it)->place = t1;
 			(*it)->accept(*this);
 			node.code.splice(node.code.end(), (*it)->code);
-			arg_list.push_back(t1);
+			arg_list.push_back(std::make_shared<ir::Variable>(t1));
 		}	
-		for (const auto &arg : arg_list)
-		{
-			node.code.push_back(std::make_shared<ir::Arg>(
-					std::make_shared<ir::Variable>(arg)));
-		}
+	//	for (const auto &arg : arg_list)
+	//	{
+	//		node.code.push_back(std::make_shared<ir::Arg>(
+	//				std::make_shared<ir::Variable>(arg)));
+	//	}
 		if (node.place.empty()) node.place = new_temp();
 		node.code.push_back(std::make_shared<ir::FunCall>(
-					node.name, node.place));
+					node.name, node.place, arg_list));
 	}
 }
 

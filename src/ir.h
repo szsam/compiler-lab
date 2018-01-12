@@ -240,12 +240,17 @@ struct FunCall : public InterCode
 {
 	std::string fun_name;
 	Variable result;
+	std::vector<std::shared_ptr<Operand>> args;
 
-	FunCall(const std::string str, const Variable &var) 
-		: fun_name(str), result(var) {}
+	FunCall(const std::string str, const Variable &var, 
+			const std::vector<std::shared_ptr<Operand>> &_args) 
+		: fun_name(str), result(var), args(_args) {}
 	std::ostream& output(std::ostream &out) const override
 	{
-		return out << result << " := CALL " << fun_name;
+		for (auto it = args.rbegin(); it != args.rend(); ++it)
+			out << "ARG " << **it << std::endl;
+		out << result << " := CALL " << fun_name << std::endl;
+		return out;
 	}
 	DEFINE_ACCEPT;
 };
