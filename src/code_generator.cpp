@@ -62,7 +62,7 @@ namespace ir
 //			}
 
 			// calculate frame size
-			int space_for_args = is_leaf ? 0 : max(16, 4 * max_num_of_args);
+			int space_for_args = is_leaf ? 0 : max(16u, 4 * max_num_of_args);
 			int frame_size = space_for_args + local_var_offset + 8;
 
 			// fill in offset of local variables in load/store instructions
@@ -76,7 +76,7 @@ namespace ir
 			temp_list.splice(temp_list.end(), prologue(frame_size));
 			// store first four arguments (if any) in caller's stack
 			for (vector<Variable>::size_type i = 0;
-					i < pfun->params.size() && i < 3; ++i)
+					i < pfun->params.size() && i < 4; ++i)
 			{
 				Register::Reg reg;
 				switch (i)
@@ -101,31 +101,55 @@ namespace ir
 	
 	}
 
-	shared_ptr<Instruction> CodeGenerationVisitor::load_operand(
+	CodeGenerationVisitor::AsmList CodeGenerationVisitor::load_operand(
+			const Variable &var, Register reg)
+	{
+		// lw reg, operand
+		switch (var.prefix)
+		{
+			case Variable::NIL:
+				// reg <- var
+				return { access_variable(var, Instruction::LW, reg) };
+			case Variable::DEREF:
+				// reg <- var
+				// lw reg, 0(reg)
+				return { access_variable(var, Instruction::LW, reg),
+						 make_shared<MemoryInstr>(Instruction::LW, reg, reg, 0) };
+			case Variable::ADDR:
+				return { access_variable(var, Instruction::ADDIU, reg) };
+		}
+	}
+
+	CodeGenerationVisitor::AsmList CodeGenerationVisitor::load_operand(
 			shared_ptr<Operand> operand, Register reg)
 	{
 		if (auto pconst = dynamic_pointer_cast<Constant>(operand))
 		{
 			// li reg, operand
-			return make_shared<I2RInstruction>(Instruction::LI, reg, pconst->value);	
+			return { make_shared<I2RInstruction>(Instruction::LI, reg, pconst->value)};
 		}
 		else if (auto pvar = dynamic_pointer_cast<Variable>(operand))
 		{
-			// lw reg, operand
-			return access_variable(*pvar, Instruction::LW, reg); 
+			return load_operand(*pvar, reg);
 		}
 		assert(0);	
 	}
 
 	// access parameter, local variable, or temporary
-	// OP should be LW or SW
-	std::shared_ptr<mips32_asm::MemoryInstr>
+	// OP should be LW or SW or ADDIU
+	std::shared_ptr<mips32_asm::Instruction>
 	CodeGenerationVisitor::access_variable(
 					const Variable &var, 
 					mips32_asm::Instruction::OP op, 
 					mips32_asm::Register reg)
 	{
-		auto instr = make_shared<MemoryInstr>(op, reg, Register::fp, 0);
+		shared_ptr<Instruction> instr;
+
+		if (op == Instruction::LW || op == Instruction::SW)
+			instr = make_shared<MemoryInstr>(op, reg, Register::fp, 0);
+		else // addiu
+			instr = make_shared<IInstruction>(op, reg, Register::fp, 0);
+
 		auto ret = var_info.insert({var, VarInfo(VarInfo::LOCAL, local_var_offset)});
 
 		// new variable
@@ -141,7 +165,10 @@ namespace ir
 		int base = (type == PARAM ? frame_size : args_size);
 		for (auto &pinstr : instructions)
 		{
-			pinstr->offset = base + offset;
+			if (auto p_minstr = dynamic_pointer_cast<MemoryInstr>(pinstr))
+				p_minstr->offset = base + offset;
+			else if (auto p_iinstr = dynamic_pointer_cast<IInstruction>(pinstr))
+				p_iinstr->imm = base + offset;
 		}
 	}
 
@@ -218,11 +245,25 @@ namespace ir
 	
 	void CodeGenerationVisitor::visit(Assign &code)
 	{
-		// x := y
 		// load y into $t1
-		code.assembly.push_back(load_operand(code.rhs, Register::t1));
-		// sw $t1, x
-		code.assembly.push_back(access_variable(code.lhs, Instruction::SW, Register::t1));	
+		code.assembly.splice(code.assembly.end(), load_operand(code.rhs, Register::t1));
+
+		if (code.lhs.prefix == Variable::NIL)
+		{
+			// store $t1 into x
+			code.assembly.push_back(
+					access_variable(code.lhs, Instruction::SW, Register::t1));	
+		}
+		else if (code.lhs.prefix == Variable::DEREF)
+		{
+			// load the value of x into $t2
+			code.lhs.prefix = Variable::NIL;
+			code.assembly.splice(code.assembly.end(), load_operand(code.lhs, Register::t2));
+			// sw $t1, 0($t2)
+			code.assembly.push_back(make_shared<MemoryInstr>(
+						Instruction::SW, Register::t1, Register::t2, 0));
+		}
+		else assert(0);
 	}
 	
 	// generate code for Plus and Minus
@@ -230,7 +271,8 @@ namespace ir
 			Instruction::OP rinstr, Instruction::OP iinstr)
 	{
 		// $t1 <- lhs
-		code.assembly.push_back(load_operand(code.lhs, Register::t1));
+		code.assembly.splice(code.assembly.end(), 
+				load_operand(code.lhs, Register::t1));
 
 		if (auto pconst = dynamic_pointer_cast<Constant>(code.rhs))
 		{
@@ -266,9 +308,11 @@ namespace ir
 	void CodeGenerationVisitor::visit(Multiply &code)
 	{
 		// $t1 <- lhs
-		code.assembly.push_back(load_operand(code.lhs, Register::t1));
+		code.assembly.splice(code.assembly.end(), 
+			load_operand(code.lhs, Register::t1));
 		// $t2 <- rhs
-		code.assembly.push_back(load_operand(code.rhs, Register::t2));
+		code.assembly.splice(code.assembly.end(), 
+			load_operand(code.rhs, Register::t2));
 		// mul $t3, $t1, $t2
 		code.assembly.push_back(make_shared<RInstruction>(Instruction::MUL,
 				Register::t3, Register::t1, Register::t2));
@@ -280,9 +324,11 @@ namespace ir
 	void CodeGenerationVisitor::visit(Divide &code)
 	{
 		// $t1 <- lhs
-		code.assembly.push_back(load_operand(code.lhs, Register::t1));
+		code.assembly.splice(code.assembly.end(), 
+			load_operand(code.lhs, Register::t1));
 		// $t2 <- rhs
-		code.assembly.push_back(load_operand(code.rhs, Register::t2));
+		code.assembly.splice(code.assembly.end(), 
+			load_operand(code.rhs, Register::t2));
 		// div $t1, $t2
 		code.assembly.push_back(make_shared<DoubleRegInstr>(Instruction::DIV,
 				Register::t1, Register::t2));
@@ -302,8 +348,10 @@ namespace ir
 	
 	void CodeGenerationVisitor::visit(CGoto &code)
 	{
-		code.assembly.push_back(load_operand(code.lhs, Register::t1));
-		code.assembly.push_back(load_operand(code.rhs, Register::t2));
+		code.assembly.splice(code.assembly.end(), 
+			load_operand(code.lhs, Register::t1));
+		code.assembly.splice(code.assembly.end(), 
+			load_operand(code.rhs, Register::t2));
 
 		const map<string, Instruction::OP> op_map = 
 		{
@@ -320,7 +368,8 @@ namespace ir
 	
 	void CodeGenerationVisitor::visit(Return &code)
 	{
-		code.assembly.push_back(load_operand(code.operand, Register::v0));
+		code.assembly.splice(code.assembly.end(), 
+			load_operand(code.operand, Register::v0));
 		code.assembly.push_back(make_shared<JInstruction>(Instruction::B, epilogue_label));
 	}
 	
@@ -338,9 +387,10 @@ namespace ir
 	void CodeGenerationVisitor::visit(Write &code)
 	{
 		is_leaf = false;
-		max_num_of_args = max(max_num_of_args, 1);
+		max_num_of_args = max(max_num_of_args, 1u);
 		// a0 <- operand
-		code.assembly.push_back(load_operand(code.operand, Register::a0));
+		code.assembly.splice(code.assembly.end(), 
+			load_operand(code.operand, Register::a0));
 		// jal write
 		code.assembly.push_back(make_shared<JInstruction>(
 					Instruction::JAL, "write"));
@@ -357,7 +407,7 @@ namespace ir
 	void CodeGenerationVisitor::visit(FunCall &code)
 	{
 		is_leaf = false;
-		max_num_of_args = max(max_num_of_args, 1);
+		max_num_of_args = max(max_num_of_args, code.args.size());
 
 		for (vector<shared_ptr<Operand>>::size_type i = 0;
 				i < code.args.size(); ++i)
@@ -365,13 +415,15 @@ namespace ir
 			if (i < 4)
 			{
 				// $a_i <- args[i]
-				code.assembly.push_back(load_operand(code.args[i], 
+				code.assembly.splice(code.assembly.end(), 
+					load_operand(code.args[i], 
 						Register::Reg((int)Register::a0 + i)));
 			}
 			else
 			{
 				// $t0 <- args[i]
-				code.assembly.push_back(load_operand(code.args[i], Register::t0));
+				code.assembly.splice(code.assembly.end(), 
+					load_operand(code.args[i], Register::t0));
 				// sw $t0, 4*i($fp)
 				code.assembly.push_back(make_shared<MemoryInstr>(
 							Instruction::SW, Register::t0, Register::fp, 4 * i));
@@ -389,5 +441,7 @@ namespace ir
 	
 	void CodeGenerationVisitor::visit(Declare &code)
 	{
+		var_info.insert({code.operand, VarInfo(VarInfo::LOCAL, local_var_offset)});
+		local_var_offset += code.size;
 	}
 }

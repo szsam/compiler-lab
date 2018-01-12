@@ -51,7 +51,7 @@ namespace ir
 		public:
 			enum Type { PARAM, LOCAL };
 			VarInfo(Type t, int off) : type(t), offset(off) {}
-			void add_instr(std::shared_ptr<mips32_asm::MemoryInstr> instr)
+			void add_instr(std::shared_ptr<mips32_asm::Instruction> instr)
 			{ instructions.push_back(instr); } 
 			void back_patch(int frame_size, int args_size);
 
@@ -61,7 +61,7 @@ namespace ir
 			// offset to the first parameter, or first local variable
 			int offset;
 			// instructions that use this variable
-			std::vector<std::shared_ptr<mips32_asm::MemoryInstr>> instructions;
+			std::vector<std::shared_ptr<mips32_asm::Instruction>> instructions;
 
 		};
 		std::map<Variable, VarInfo> var_info;
@@ -69,17 +69,19 @@ namespace ir
 		// i.e. offset to the first local variable (in bytes)
 		int local_var_offset;
 		//  maximum number of arguments of called functions 
-		int max_num_of_args;
+		std::vector<ir::Variable>::size_type max_num_of_args;
 		// a function is leaf if it does not itself call any function 
 		bool is_leaf;
 		std::string epilogue_label;
 
 		// load operand(variable/constant) into register
-		std::shared_ptr<mips32_asm::Instruction>
-		   	load_operand(std::shared_ptr<Operand> operand, mips32_asm::Register reg);
+		/// std::shared_ptr<mips32_asm::Instruction>
+		AsmList	load_operand(std::shared_ptr<Operand> operand, mips32_asm::Register reg);
+		// load variable into register
+		AsmList	load_operand(const ir::Variable &, mips32_asm::Register reg);
 
 		// access parameter, local variable, or temporary
-		std::shared_ptr<mips32_asm::MemoryInstr>
+		std::shared_ptr<mips32_asm::Instruction>
 		access_variable(const Variable &, mips32_asm::Instruction::OP, mips32_asm::Register);
 
 		AsmList prologue(int frame_size);
