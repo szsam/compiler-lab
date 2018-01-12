@@ -39,15 +39,16 @@ void InterCodeGenVisitor::visit(GlobalVar & node)
 
 void InterCodeGenVisitor::visit(FunDec & node)
 {
-	node.code.push_back(std::make_shared<ir::Function>(node.name));
+	auto ir_fun = std::make_shared<ir::Function>(node.name);
 
 //	for (const auto &param : node.ir_params)
 //		node.code.push_back(std::make_shared<ir::Param>(param));
 	for (auto it = node.params.rbegin(); it != node.params.rend(); ++it)
 	{
-		node.code.push_back(std::make_shared<ir::Param>(
-					it->second->sym_info.ir_name));
+		ir_fun->params.push_back(it->second->sym_info.ir_name);
 	}
+
+	node.code.push_back(ir_fun);
 
 	node.body->accept(*this);
 	node.code.splice(node.code.end(), node.body->code);

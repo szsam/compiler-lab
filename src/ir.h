@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <list>
+#include <vector>
 
 #include "assembly.h"
 #include "ir_visitor.h"
@@ -39,6 +40,7 @@ struct Variable : public Operand
 
 	std::ostream& output(std::ostream &out) const { return out << prefix_ch[prefix] << str; }
 	bool empty() const { return str.empty(); }
+	bool operator<(const Variable &rhs) const { return str < rhs.str; }
 };
 
 struct Constant : public Operand
@@ -72,14 +74,30 @@ struct Label : public InterCode
 	DEFINE_ACCEPT;
 };
 
+// struct Param : public InterCode
+// {
+// 	Variable operand;
+// 
+// 	Param(const Variable &var) : operand(var) {}
+// 	std::ostream& output(std::ostream &out) const override
+// 	{
+// 		return out << "PARAM " << operand;
+// 	}
+// 	DEFINE_ACCEPT;
+// };
+
 struct Function : public InterCode
 {
 	std::string name;
+	std::vector<Variable> params;
 
 	Function(const std::string &s) : name(s) {}
 	std::ostream& output(std::ostream &out) const override
 	{
-		return out << "FUNCTION " << name << " :";
+		out << "FUNCTION " << name << " :\n";
+		for (const auto &param : params)
+			out << "PARAM " << param << std::endl;
+		return out;
 	}
 	DEFINE_ACCEPT;
 };
@@ -202,18 +220,6 @@ struct Write : public InterCode
 	std::ostream& output(std::ostream &out) const override
 	{
 		return out << "WRITE " << *operand;
-	}
-	DEFINE_ACCEPT;
-};
-
-struct Param : public InterCode
-{
-	Variable operand;
-
-	Param(const Variable &var) : operand(var) {}
-	std::ostream& output(std::ostream &out) const override
-	{
-		return out << "PARAM " << operand;
 	}
 	DEFINE_ACCEPT;
 };
