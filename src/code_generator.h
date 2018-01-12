@@ -41,7 +41,8 @@ namespace ir
 		// intermediate-code
 		std::list<std::list<std::shared_ptr<InterCode>>> inter_code;
 		// machine-code
-		std::list<std::list<std::shared_ptr<mips32_asm::Assembly>>> machine_code;
+		typedef std::list<std::shared_ptr<mips32_asm::Assembly>> AsmList;
+		std::list<AsmList> machine_code;
 
 		struct VarInfo
 		{
@@ -69,6 +70,7 @@ namespace ir
 		int max_num_of_args;
 		// a function is leaf if it does not itself call any function 
 		bool is_leaf;
+		std::string epilogue_label;
 
 		// load operand(variable/constant) into register
 		std::shared_ptr<mips32_asm::Instruction>
@@ -77,5 +79,9 @@ namespace ir
 		// access parameter, local variable, or temporary
 		std::shared_ptr<mips32_asm::MemoryInstr>
 		access_variable(const Variable &, mips32_asm::Instruction::OP, mips32_asm::Register);
+
+		AsmList prologue(int frame_size);
+
+		AsmList epilogue(int frame_size);
 	};
 }
