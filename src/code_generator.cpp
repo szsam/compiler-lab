@@ -9,6 +9,8 @@ namespace ir
 
 	void CodeGenerationVisitor::output(std::ostream &os) const
 	{
+		os << startup_code << std::endl;
+
 		for (const auto &fun_code : machine_code)
 		{
 			for (const auto &p_code : fun_code)
@@ -311,14 +313,30 @@ namespace ir
 	
 	void CodeGenerationVisitor::visit(Return &code)
 	{
+		code.assembly.push_back(load_operand(code.operand, Register::v0));
+		code.assembly.push_back(make_shared<JInstruction>(Instruction::B, epilogue_label));
 	}
 	
 	void CodeGenerationVisitor::visit(Read &code)
 	{
+		is_leaf = false;
+		// jal read
+		code.assembly.push_back(make_shared<JInstruction>(
+					Instruction::JAL, "read"));
+		// operand <- v0
+		code.assembly.push_back(
+				access_variable(code.operand, Instruction::SW, Register::v0));
 	}
 	
 	void CodeGenerationVisitor::visit(Write &code)
 	{
+		is_leaf = false;
+		max_num_of_args = max(max_num_of_args, 1);
+		// a0 <- operand
+		code.assembly.push_back(load_operand(code.operand, Register::a0));
+		// jal write
+		code.assembly.push_back(make_shared<JInstruction>(
+					Instruction::JAL, "write"));
 	}
 	
 	void CodeGenerationVisitor::visit(Param &code)

@@ -44,6 +44,8 @@ namespace ir
 		typedef std::list<std::shared_ptr<mips32_asm::Assembly>> AsmList;
 		std::list<AsmList> machine_code;
 
+		static const char *startup_code;
+
 		struct VarInfo
 		{
 		public:
