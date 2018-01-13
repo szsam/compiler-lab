@@ -54,12 +54,12 @@ int main(int argc, char** argv)
 	ast_root->accept(inter_code_gen);
 
 	ofstream fout(argv[2]);
-	inter_code_gen.output(fout);
+//	ofstream fout2("temp.ir");
+//	inter_code_gen.output(fout2);
 
-	ofstream fout2("code.s");
 	ir::CodeGenerationVisitor code_generator(inter_code_gen.inter_code);
 	code_generator.generate_machine_code();
-	code_generator.output(fout2);
+	code_generator.output(fout);
 
 	return 0;
 }
