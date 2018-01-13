@@ -2,19 +2,20 @@ LEX = flex
 YACC = bison
 CXX = g++
 
-TARGET_EXEC ?= parser
+TARGET_EXEC ?= cmm
 
 BUILD_DIR ?= ./build
-SRC_DIRS ?= ./src
+SRC_DIR ?= ./src
+SRC_DIRS ?= ./src ./include
 
-LFILE := $(SRC_DIRS)/lexical.l
-YFILE := $(SRC_DIRS)/syntax.y
+LFILE := $(SRC_DIR)/lexical.l
+YFILE := $(SRC_DIR)/syntax.y
 LCFILE := $(LFILE:%.l=%.cpp)
 YCFILE := $(YFILE:%.y=%.tab.cpp)
 YHFILE := $(YFILE:%.y=%.tab.h)
 
 SRCS := $(shell find $(SRC_DIRS) -name *.cpp)
-# Just in case LCFILE and YCFILE are already in SRC_DIRS
+# Just in case LCFILE and YCFILE are already in SRC_DIR
 SRCS := $(filter-out $(LCFILE) $(YCFILE), $(SRCS))
 SRCS += $(LCFILE) $(YCFILE)
 
@@ -24,7 +25,7 @@ DEPS := $(OBJS:.o=.d)
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -std=c++14 -g -DDEBUG
+CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -std=c++14 # -g -DDEBUG
 LDFLAGS ?= -lfl -ly
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
@@ -48,7 +49,7 @@ $(YHFILE) $(YCFILE): $(YFILE)
 .PHONY: clean
 
 clean:
-	$(RM) -r $(BUILD_DIR) $(LCFILE) $(YCFILE) $(YHFILE) $(SRC_DIRS)/*.output
+	$(RM) -r $(BUILD_DIR) $(LCFILE) $(YCFILE) $(YHFILE) $(SRC_DIR)/*.output
 
 -include $(DEPS)
 

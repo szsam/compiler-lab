@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 		// print_parse_tree(root, 0);
 	delete_parse_tree(root);
 
-	cout << "AST root: " << ast_root.get() << endl;	
+//	cout << "AST root: " << ast_root.get() << endl;	
 
 	DecCheckVisitor dec_checker;
 	ast_root->accept(dec_checker);
