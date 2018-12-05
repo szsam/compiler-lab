@@ -1,3 +1,31 @@
+# Compiler Lab
+
+Design and implement a compiler for a C-like language: translate C-like language source code to MIPS32 assembly. The generated assembly can be executed by SPIM Simulator. There are four phases of this compiler, and the output of a phase is the input of the following phase:
+
+* Lexical and syntax analysis
+     * Use `flex` and `bison`
+     * Print parse tree
+     * Check basic lexical and syntax error
+* Semantic analysis
+     * Check semantic errors (undefined/redefined identifiers, ...) and type errors (e.g. LHS of assigment operator is not an lvalue)
+     * Support nested scope
+* Intermediate code generation
+     * Support multidimensional array
+* Machine code (MIPS32 Assembly) generation 
+     * Consistent with MIPS C-compiler call convention
+
+## Compile and run
+To compile the project, type
+``` shell
+make
+```
+to get the exectuable `./build/cmm`. Then run 
+```
+./build/cmm input_file output_file
+```
+`input_file` is a C-like language source code file, and `output_file` is the generated MIPS32 assembly.
+
+-------------------------
 # 编译原理实验
 
 为一个小型的类C语言实现一个编译器，分为四个阶段：
